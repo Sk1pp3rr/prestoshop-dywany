@@ -1,0 +1,99 @@
+name: CI - Repository Structure, Quality & Security
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches-ignore:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  repo-guard:
+    name: Verify Repository Structure & Limits (W1)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check required directories and files (W1)
+        run: |
+          REQUIRED_DIRS=("shop" "scraper" "scraper-results" "tests" "deploy" "docs")
+          REQUIRED_FILES=(".gitignore" ".env.example" "README.md" "docs/AI_LOG.md")
+          
+          for dir in "${REQUIRED_DIRS[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "::error::Brak wymaganego katalogu: $dir"
+              exit 1
+            fi
+          done
+
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "::error::Brak wymaganego pliku: $file"
+              exit 1
+            fi
+          done
+
+          if [ -f ".env" ]; then
+            echo "::error::Plik .env nie może znajdować się w repozytorium (krytyczny wymóg W1)!"
+            exit 1
+          fi
+          echo "Struktura katalogów i wymagane pliki są poprawne."
+
+      - name: Check file size limits (<= 10 MB per file, <= 200 MB repo) and sample images limit (<= 20)
+        run: |
+          LARGE_FILES=$(find . -path ./.git -prune -o -type f -size +10M -print)
+          if [ -n "$LARGE_FILES" ]; then
+            echo "::error::Znaleziono pliki przekraczające limit 10 MB:"
+            echo "$LARGE_FILES"
+            exit 1
+          fi
+
+          IMAGE_COUNT=$(find scraper-results -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" -o -iname "*.png" \) | wc -l)
+          if [ "$IMAGE_COUNT" -gt 20 ]; then
+            echo "::error::W katalogu scraper-results znajduje się więcej niż 20 przykładowych zdjęć ($IMAGE_COUNT)!"
+            exit 1
+          fi
+          echo "Limity rozmiarów plików i liczba przykładowych zdjęć ($IMAGE_COUNT/20) w normie."
+
+      - name: Scan for secrets with Gitleaks (W1)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  scraper-ci:
+    name: Scraper Lint (Ruff) & Unit Tests (Pytest) (W2, D5)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: "scraper/pyproject.toml"
+
+      - name: Install dependencies
+        working-directory: scraper
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run Ruff Linter & Formatter check
+        working-directory: scraper
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Run Unit Tests with Pytest
+        working-directory: scraper
+        run: |
+          pytest -v

@@ -1,0 +1,59 @@
+# Środowisko i sekrety (W1 [K] - NIGDY nie commituj pliku .env!)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Pełny zbiór zdjęć ze scrapera (W2 - publikowany wyłącznie w GitHub Releases jako archiwum)
+scraper/output/
+scraper/images/
+scraper/.scraper_state.json
+scraper-results/images_full/
+scraper-results/*.tar.gz
+scraper-results/*.zip
+
+# Python / Scraper
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Node.js / Playwright (Testy E2E)
+node_modules/
+tests/test-results/
+tests/playwright-report/
+tests/blob-report/
+tests/playwright/.cache/
+
+# PrestaShop / PHP (Cache, logi, uploady, vendor)
+vendor/
+shop/var/cache/
+shop/var/logs/
+shop/img/p/
+shop/img/c/
+shop/img/tmp/
+shop/upload/
+shop/download/
+shop/app/config/parameters.php
+
+# Backup bazy i plików tymczasowych
+deploy/backups/
+*.sql
+*.sql.gz
+!deploy/config-export/*.sql
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
