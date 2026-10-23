@@ -41,3 +41,7 @@ deploy/
 4. **Backup i odtwarzanie (`D4` – 3 pkt):**
    * `backup.sh` wykonuje zrzut bazy danych MySQL/MariaDB, archiwizuje zdjęcia produktów oraz pliki konfiguracyjne do katalogu `deploy/backups/` (wykluczonego w `.gitignore`).
    * `restore.sh` odtwarza pełny stan sklepu na czystym środowisku w czasie **$\le 10\text{ minut}$**.
+   
+   
+   
+

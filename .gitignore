@@ -44,6 +44,15 @@ shop/img/tmp/
 shop/upload/
 shop/download/
 shop/app/config/parameters.php
+shop/vendor/
+shop/var/sessions/
+shop/var/jwt/
+shop/img/m/
+shop/img/su/
+shop/upload/
+shop/install/
+shop/app/config/parameters.yml
+
 
 # Backup bazy i plików tymczasowych
 deploy/backups/
