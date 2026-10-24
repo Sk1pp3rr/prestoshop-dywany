@@ -1,0 +1,68 @@
+# deploy/compose.yaml
+
+services:
+  db:
+    image: mariadb:10.11
+    platform: linux/amd64
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+
+  prestashop:
+    image: prestashop/prestashop:8.2-apache
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PS_DOMAIN: localhost
+      PS_DOMAIN_SSL: localhost
+      DB_SERVER: db
+      DB_USER: ${DB_USER}
+      DB_PASSWD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      ADMIN_MAIL: ${ADMIN_MAIL}
+      ADMIN_PASSWD: ${ADMIN_PASSWD}
+      PS_LANGUAGE: pl
+      PS_COUNTRY: PL
+      PS_INSTALL_AUTO: 1
+      PS_ENABLE_SSL: 1
+      PS_FOLDER_ADMIN: admin-dev
+      # Konfiguracja SMTP dla Mailpit
+      PS_MAIL_METHOD: 2
+      PS_MAIL_SERVER: mailpit
+      PS_MAIL_USER: ""
+      PS_MAIL_PASSWD: ""
+      PS_MAIL_SMTP_ENCRYPTION: "off"
+      PS_MAIL_SMTP_PORT: 1025
+    volumes:
+      - ps_data:/var/www/html
+
+  mailpit:
+    image: axllent/mailpit
+    platform: linux/amd64
+    restart: unless-stopped
+    ports:
+      - "8025:8025" # Panel UI dostępny pod localhost:8025
+
+  nginx:
+    image: nginx:alpine
+    platform: linux/amd64
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - prestashop
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+
+volumes:
+  db_data:
+  ps_data:
