@@ -3,42 +3,49 @@
 import pytest
 from pydantic import ValidationError
 
-from dywany_scraper.models import ProductVariant, ScrapedProduct
+from mosquito_scraper.models import ProductVariant, ScrapedProduct
 
 
 def test_valid_scraped_product() -> None:
     product = ScrapedProduct(
-        external_id="DYW-NOW-001",
-        name="Dywan Nowoczesny MEFE 6182 szary",
-        description="Bardzo wytrzymały dywan nowoczesny do salonu i sypialni z miękkim runem.",
-        category_path=["Dywany", "Dywany nowoczesne"],
-        price_gross=199.99,
+        external_id="MOS-SUK-3272",
+        name="KOPERTOWA SUKIENKA Z WIĄZANIEM wyprzedaż",
+        description=(
+            "Idealna dla kobiety sukcesu. Klasyczna, prosta o bardzo komfortowym wygodnym kroju."
+        ),
+        category_path=["Sukienki", "Sukienki codzienne"],
+        price_gross=80.00,
         vat_rate=23,
-        weight_kg=3.74,
+        weight_kg=0.5,
         attributes={
-            "Wysokość runa": "ok. 8 mm",
-            "Skład": "100% Polipropylen",
-            "Waga całkowita": "ok. 1,67 kg/m2",
+            "Producent": "Mosquito",
+            "Kolor": "Zielony",
+            "Skład": "95% poliester, 5% lycra",
         },
-        image_urls=["https://dywanyluszczow.eu/img/p/1/2/3/12345-large_default.jpg"],
+        image_urls=[
+            "https://mosquito-sklep.pl/18444-tm_large_default/kopertowa-sukienka-z-wiazaniem-wyprzedaz.jpg"
+        ],
         variants=[
-            ProductVariant(size="120x170 cm", price_gross=199.99, weight_kg=3.40, stock_quantity=7),
-            ProductVariant(size="160x220 cm", price_gross=319.99, weight_kg=5.87, stock_quantity=4),
+            ProductVariant(size="XS", price_gross=80.00, weight_kg=0.5, stock_quantity=5),
+            ProductVariant(size="S", price_gross=80.00, weight_kg=0.5, stock_quantity=7),
+            ProductVariant(size="M", price_gross=80.00, weight_kg=0.5, stock_quantity=3),
+            ProductVariant(size="L", price_gross=80.00, weight_kg=0.5, stock_quantity=4),
         ],
     )
-    assert product.external_id == "DYW-NOW-001"
+    assert product.external_id == "MOS-SUK-3272"
     assert product.vat_rate == 23
-    assert len(product.variants) == 2
+    assert len(product.variants) == 4
+    assert product.variants[0].size == "XS"
 
 
 def test_invalid_product_missing_images_or_negative_price() -> None:
     with pytest.raises(ValidationError):
         ScrapedProduct(
-            external_id="DYW-ERR-001",
-            name="Dywan bez zdjęć",
+            external_id="MOS-ERR-001",
+            name="Sukienka bez zdjęć",
             description="Opis testowy produktu o odpowiedniej długości.",
-            category_path=["Dywany", "Dywany shaggy"],
+            category_path=["Sukienki", "Sukienki wieczorowe"],
             price_gross=-10.0,
-            weight_kg=2.5,
+            weight_kg=0.5,
             image_urls=[],
         )
