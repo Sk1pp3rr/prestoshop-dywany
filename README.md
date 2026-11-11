@@ -79,4 +79,8 @@ BASE_URL=https://localhost:8443 npx playwright test
 * PR zawierające kod wspomagany przez AI są oznaczane etykietą `ai-assisted` i dokumentowane w [`docs/AI_LOG.md`](docs/AI_LOG.md).
 
 ## 6. Skład zespołu
-* *(Uzupełnij imiona, nazwiska oraz loginy GitHub członków zespołu)*
+* Wojciech Przyborski
+* Paweł Marzec
+* Franciszek Łaba
+* Krzysztof Szady
+* Karol Żurański
