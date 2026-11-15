@@ -1,0 +1,84 @@
+# deploy/compose.yaml
+# Środowisko kontenerowe PrestaShop 8.2.x, MariaDB, Mailpit i Nginx HTTPS (Wymaganie W3)
+
+services:
+  db:
+    image: mariadb:10.11
+    platform: linux/amd64
+    container_name: prestashop_db
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWD}
+      MYSQL_DATABASE: ${DB_NAME:-prestashop}
+      MYSQL_USER: ${DB_USER:-prestashop_user}
+      MYSQL_PASSWORD: ${DB_PASSWD}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  prestashop:
+    image: prestashop/prestashop:8.2-apache
+    platform: linux/amd64
+    container_name: prestashop_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PS_DOMAIN: ${PS_DOMAIN:-localhost:8443}
+      PS_DOMAIN_SSL: ${PS_DOMAIN:-localhost:8443}
+      DB_SERVER: db
+      DB_USER: ${DB_USER:-prestashop_user}
+      DB_PASSWD: ${DB_PASSWD}
+      DB_NAME: ${DB_NAME:-prestashop}
+      DB_PREFIX: ${DB_PREFIX:-ps_}
+      ADMIN_MAIL: ${ADMIN_MAIL}
+      ADMIN_PASSWD: ${ADMIN_PASSWD}
+      PS_LANGUAGE: ${PS_LANGUAGE:-pl}
+      PS_COUNTRY: ${PS_COUNTRY:-PL}
+      PS_INSTALL_AUTO: 1
+      PS_ENABLE_SSL: 1
+      PS_FOLDER_ADMIN: ${PS_FOLDER_ADMIN:-admin_dev}
+      # Konfiguracja SMTP dla kontenera Mailpit
+      PS_MAIL_METHOD: 2
+      PS_MAIL_SERVER: mailpit
+      PS_MAIL_USER: ""
+      PS_MAIL_PASSWD: ""
+      PS_MAIL_SMTP_ENCRYPTION: "off"
+      PS_MAIL_SMTP_PORT: 1025
+    volumes:
+      - ps_data:/var/www/html
+
+  mailpit:
+    image: axllent/mailpit
+    platform: linux/amd64
+    container_name: prestashop_mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+
+  nginx:
+    image: nginx:alpine
+    platform: linux/amd64
+    container_name: prestashop_nginx
+    restart: unless-stopped
+    depends_on:
+      - prestashop
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+      - "${HTTPS_PORT:-8443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+
+volumes:
+  db_data:
+  ps_data:
