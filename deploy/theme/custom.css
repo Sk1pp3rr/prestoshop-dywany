@@ -41,27 +41,95 @@ a:hover {
   border-bottom: 1px solid var(--mosquito-border);
 }
 
+/* Czarny pasek promocyjny nad całym nagłówkiem (styl Mosquito) */
+#header::before {
+  content: "DARMOWA DOSTAWA POWYŻEJ 2000 ZŁ  |  NOWA KOLEKCJA";
+  display: block;
+  background: var(--mosquito-ink);
+  color: #ffffff;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  padding: 0.45rem 1rem;
+}
+
+/* Pasek konta, koszyka, języka i waluty — białe tło jak na Mosquito */
 #header .header-nav {
   border-bottom: 1px solid var(--mosquito-border);
-  background: var(--mosquito-surface);
+  background: var(--mosquito-bg);
+  color: var(--mosquito-ink);
   font-size: 0.8125rem;
+  max-height: none;
+  padding: 0.35rem 0;
+}
+
+#header .header-nav a,
+#header .header-nav .material-icons,
+#header .header-nav .expand-more,
+#header .header-nav .user-info,
+#header .header-nav .cart-preview,
+#header .header-nav .language-selector,
+#header .header-nav .currency-selector {
+  color: var(--mosquito-ink);
+}
+
+#header .header-nav a:hover {
+  color: var(--mosquito-accent);
+}
+
+#header .header-nav .blockcart {
+  background: transparent;
 }
 
 #header .header-top {
-  padding: 1rem 0;
+  padding: 0.75rem 0;
+  background: var(--mosquito-bg);
+}
+
+#header .header-top .header-top-right {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+#header .header-top .menu {
+  margin-top: 0;
+  flex: 1 1 auto;
+}
+
+#header .header-top .menu > ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.15rem 0.45rem;
 }
 
 #header .header-top .menu > ul > li > a {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: var(--mosquito-ink);
-  padding: 0.5rem 0.75rem;
+  padding: 0.45rem 0.6rem;
 }
 
 #header .header-top .menu > ul > li > a:hover {
   color: var(--mosquito-accent);
+}
+
+#header .header-top #search_widget {
+  float: none;
+  margin: 0 0 0 auto;
+  min-width: 220px;
+}
+
+#header .header-top .sub-menu {
+  border: 1px solid var(--mosquito-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border-radius: 0;
 }
 
 /* Wyszukiwarka */
@@ -138,6 +206,38 @@ h3,
   margin-bottom: 1.75rem;
 }
 
+/* --- Układ strony głównej i siatki produktów (styl Mosquito) --- */
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1360px;
+  }
+}
+
+/* Pełnoszerokościowy slider i baner na stronie głównej */
+#index #carousel,
+#index .banner {
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+#index #carousel .carousel-inner img {
+  width: 100%;
+  max-height: 620px;
+  object-fit: cover;
+}
+
+/* 4 kolumny produktów w rzędzie na desktopie */
+@media (min-width: 992px) {
+  .featured-products .products .product-miniature,
+  #products .products .product-miniature,
+  .product-accessories .products .product-miniature {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+}
+
 /* --- Karty produktów (proporcje 3:4 dla zdjęć modowych) --- */
 .product-miniature {
   margin-bottom: 1.75rem;
@@ -158,12 +258,22 @@ h3,
 }
 
 .product-miniature .thumbnail-top {
+  width: 100%;
+  height: auto;
   overflow: hidden;
   background: var(--mosquito-surface);
 }
 
-.product-miniature .product-thumbnail img {
+.product-miniature .product-thumbnail {
+  display: block;
   width: 100%;
+  height: auto;
+}
+
+.product-miniature .product-thumbnail img {
+  display: block;
+  width: 100%;
+  height: auto;
   aspect-ratio: 3 / 4;
   object-fit: cover;
   object-position: top center;
@@ -273,4 +383,65 @@ body#checkout section.checkout-step {
 
 .footer-container li a:hover {
   color: var(--mosquito-ink);
+}
+
+/* --- Siatka 3 kolumn hero (jak na screenie Mosquito) + 4 kafelki kolekcji --- */
+.mosquito-hero-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr;
+  gap: 0.75rem;
+  margin: 0.75rem 0 2rem;
+}
+
+@media (max-width: 991px) {
+  .mosquito-hero-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mosquito-collections-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin: 2rem 0 2.5rem;
+}
+
+@media (max-width: 991px) {
+  .mosquito-collections-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.mosquito-collection-tile {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--mosquito-surface);
+  aspect-ratio: 3 / 4;
+}
+
+.mosquito-collection-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  transition: transform 0.45s ease;
+}
+
+.mosquito-collection-tile:hover img {
+  transform: scale(1.05);
+}
+
+.mosquito-collection-tile__label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.9rem 1rem;
+  background: linear-gradient(transparent, rgba(17, 17, 17, 0.72));
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
