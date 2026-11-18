@@ -302,6 +302,7 @@ def update_stock_for_product(
 def create_product(
     api: PrestaShopAPI,
     item: dict[str, Any],
+    ref: str,
     cat_ids: list[int],
     default_cat_id: int,
     tax_group_id: int,
@@ -317,7 +318,7 @@ def create_product(
     prod = ET.SubElement(root, "product")
     ET.SubElement(prod, "id_category_default").text = str(default_cat_id)
     ET.SubElement(prod, "id_tax_rules_group").text = str(tax_group_id)
-    ET.SubElement(prod, "reference").text = str(item["external_id"])
+    ET.SubElement(prod, "reference").text = ref[:64]
     ET.SubElement(prod, "price").text = f"{price_net:.6f}"
     ET.SubElement(prod, "weight").text = f"{float(item.get('weight_kg', 0.5)):.6f}"
     ET.SubElement(prod, "active").text = "1"
@@ -458,11 +459,15 @@ def main() -> None:
     imported = 0
     skipped = 0
     errors = 0
+    seen_base_refs: dict[str, int] = {}
 
     for idx, item in enumerate(products, start=1):
-        ref = str(item.get("external_id", "")).strip()
-        if not ref:
+        base_ref = str(item.get("external_id", "")).strip()
+        if not base_ref:
             continue
+        occ = seen_base_refs.get(base_ref, 0) + 1
+        seen_base_refs[base_ref] = occ
+        ref = base_ref if occ == 1 else f"{base_ref}-{occ}"[:64]
         if ref in existing_refs:
             skipped += 1
             continue
@@ -479,6 +484,7 @@ def main() -> None:
             pid = create_product(
                 api=api,
                 item=item,
+                ref=ref,
                 cat_ids=cat_ids,
                 default_cat_id=default_cat_id,
                 tax_group_id=tax_group_id,
