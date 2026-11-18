@@ -104,30 +104,44 @@ class ScraperApp:
         """Główna pętla zbierania danych."""
         logger.info(f"Rozpoczynanie scrapowania mosquito-sklep.pl (cel: {self.limit} produktów)...")
 
-        # 1. Pobieramy listę URL-i z sitemapy
-        all_urls = self.crawler.fetch_product_urls_from_sitemap()
-        if not all_urls:
-            logger.error("Nie udało się pobrać adresów produktów z sitemapy.")
+        # 1. Pobieramy listę docelowych produktów z drzewa kategorii i podkategorii
+        all_targets = self.crawler.fetch_product_targets_from_categories(limit=self.limit)
+        if not all_targets:
+            logger.warning("Brak wyników z kategorii, używam rezerwowej sitemapy...")
+            sitemap_urls = self.crawler.fetch_product_urls_from_sitemap()
+            all_targets = [(u, "Odzież damska", "Sukienki") for u in sitemap_urls]
+
+        if not all_targets:
+            logger.error("Nie udało się pobrać adresów produktów.")
             return
 
-        urls_to_scrape = [u for u in all_urls if u not in self.scraped_urls]
+        targets_to_scrape = [t for t in all_targets if t[0] not in self.scraped_urls]
         logger.info(
-            f"Łącznie produktów w sitemapie: {len(all_urls)}. Do pobrania: {len(urls_to_scrape)}."
+            f"Łącznie zebranych linków: {len(all_targets)}. Do pobrania: {len(targets_to_scrape)}."
         )
 
         try:
-            for url in urls_to_scrape:
+            for url, main_cat, sub_cat in targets_to_scrape:
                 if self.stop_requested or len(self.scraped_products) >= self.limit:
                     break
 
-                logger.info(f"[{len(self.scraped_products) + 1}/{self.limit}] Pobieranie: {url}")
+                logger.info(
+                    f"[{len(self.scraped_products) + 1}/{self.limit}] "
+                    f"[{main_cat} > {sub_cat}] {url}"
+                )
                 html = self.crawler.fetch_page(url)
                 if not html:
                     self.log_error(url, "Pusta odpowiedź lub błąd pobierania strony")
                     self.scraped_urls.add(url)
                     continue
 
-                product = parse_product_page(html, url=url)
+                product = parse_product_page(
+                    html,
+                    url=url,
+                    fallback_category=main_cat,
+                    fallback_subcategory=sub_cat,
+                    prefer_fallback_category=True,
+                )
                 if not product:
                     self.log_error(url, "Błąd parsowania produktu lub brak wymaganych pól")
                     self.scraped_urls.add(url)
@@ -216,8 +230,8 @@ def main() -> None:
     if args.clean:
         if args.state_file.exists():
             args.state_file.unlink()
-        if args.output_file.exists():
-            args.output_file.unlink()
+        if args.output.exists():
+            args.output.unlink()
 
     app = ScraperApp(
         output_file=args.output,

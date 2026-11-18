@@ -3,7 +3,6 @@
 import json
 import logging
 import re
-from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
@@ -17,23 +16,88 @@ def parse_category_page(html_content: str) -> list[str]:
     soup = BeautifulSoup(html_content, "html.parser")
     product_urls: list[str] = []
 
-    # 1. Miniatury produktów i linki nagłówków
-    for a in soup.select(
-        ".product-miniature a.product-thumbnail, .product-miniature h2 a, .product-miniature h3 a"
-    ):
-        href = a.get("href")
-        if href and href.endswith(".html") and href not in product_urls:
+    # 1. Lista produktów z głównej siatki PrestaShop (#js-product-list)
+    for pm in soup.select("#js-product-list .product-miniature"):
+        a = pm.select_one('a[href$=".html"]')
+        href = a.get("href") if a else None
+        if (
+            href
+            and href.endswith(".html")
+            and "test" not in href.lower()
+            and href not in product_urls
+        ):
             product_urls.append(href)
 
-    # 2. Rezerwowe wyszukiwanie linków produktowych z identyfikatorem liczbowym
+    # 2. Miniatury produktów i linki nagłówków (fallback dla uproszczonych szablonów)
+    if not product_urls:
+        fallback_selector = (
+            ".product-miniature a.product-thumbnail, "
+            ".product-miniature h2 a, .product-miniature h3 a"
+        )
+        for a in soup.select(fallback_selector):
+            href = a.get("href")
+            if (
+                href
+                and href.endswith(".html")
+                and "test" not in href.lower()
+                and href not in product_urls
+            ):
+                product_urls.append(href)
+
+    # 3. Rezerwowe wyszukiwanie linków produktowych z identyfikatorem liczbowym
     if not product_urls:
         for a in soup.find_all("a", href=True):
             href = a["href"]
             if re.search(r"/\d+-[a-zA-Z0-9-]+\.html$", href) and "/content/" not in href:
-                if href not in product_urls:
+                if "test" not in href.lower() and href not in product_urls:
                     product_urls.append(href)
 
     return product_urls
+
+
+def parse_category_menu(html_content: str) -> list[tuple[str, str, str]]:
+    """Wyodrębnia pary (kategoria_główna, podkategoria, url) z mega-menu sklepu."""
+    soup = BeautifulSoup(html_content, "html.parser")
+    results: list[tuple[str, str, str]] = []
+    seen_urls: set[str] = set()
+
+    # Mapowanie nazw zakładek menu na czytelne kategorie główne
+    tab_mapping = {
+        "Sukienki": "Sukienki",
+        "Dresy": "Dresy",
+        "Dziecko": "Dziecko",
+        "Produkty": "Odzież damska",
+    }
+    skip_subcats = {
+        "sukienki",
+        "dresy",
+        "nowości ilovemilk",
+        "bestseller ilovemilk",
+        "wyprzedaż ilovemilk",
+        "mężczyźni",
+        "ubranka dla psów",
+    }
+
+    for tab in soup.select(".cbp-hrmenu-tab"):
+        top_a = tab.select_one(":scope > a")
+        top_name = top_a.get_text(strip=True) if top_a else ""
+        if top_name not in tab_mapping:
+            continue
+
+        main_cat = tab_mapping[top_name]
+        for a in tab.select(".cbp-category-link-w a"):
+            sub_name = a.get_text(strip=True)
+            href = a.get("href", "").strip()
+            if not sub_name or not href or "/pl/" not in href:
+                continue
+            if sub_name.lower() in skip_subcats:
+                continue
+            if href in seen_urls:
+                continue
+            seen_urls.add(href)
+            results.append((main_cat, sub_name, href))
+
+    return results
 
 
 def parse_product_page(
@@ -41,6 +105,7 @@ def parse_product_page(
     url: str,
     fallback_category: str = "Odzież damska",
     fallback_subcategory: str = "Sukienki",
+    prefer_fallback_category: bool = False,
 ) -> ScrapedProduct | None:
     """Parsuje stronę produktu i zwraca zwalidowany obiekt ScrapedProduct."""
     soup = BeautifulSoup(html_content, "html.parser")
@@ -115,7 +180,9 @@ def parse_product_page(
 
         # 5. Ścieżka kategorii [Kategoria główna, Podkategoria]
         category_path: list[str] = []
-        if len(breadcrumb_items) >= 3:
+        if prefer_fallback_category:
+            category_path = [fallback_category, fallback_subcategory]
+        elif len(breadcrumb_items) >= 3:
             # Pomijamy "Strona główna" i "Produkty", bierzemy kategorię i podkategorię
             filtered_crumbs = [
                 c
@@ -125,16 +192,10 @@ def parse_product_page(
             if len(filtered_crumbs) >= 2:
                 category_path = [filtered_crumbs[0], filtered_crumbs[1]]
             elif len(filtered_crumbs) == 1:
-                category_path = [filtered_crumbs[0], "Kolekcja ogólna"]
+                category_path = [filtered_crumbs[0], fallback_subcategory]
 
         if len(category_path) < 2:
-            # Próba wyciągnięcia z segmentów URL
-            path_parts = [p for p in urlparse(url).path.split("/") if p and p != "pl"]
-            if len(path_parts) >= 2:
-                cat_slug = path_parts[0].replace("-", " ").capitalize()
-                category_path = [cat_slug, "Kolekcja"]
-            else:
-                category_path = [fallback_category, fallback_subcategory]
+            category_path = [fallback_category, fallback_subcategory]
 
         # 6. Zdjęcia produktu (wysoka rozdzielczość)
         image_urls: list[str] = []

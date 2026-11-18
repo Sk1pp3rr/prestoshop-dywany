@@ -7,6 +7,8 @@ from urllib.robotparser import RobotFileParser
 
 import httpx
 
+from mosquito_scraper.parser import parse_category_menu, parse_category_page
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_USER_AGENT = "MosquitoScraperBot/1.0 (+student project PG; Politechnika Gdanska)"
@@ -141,6 +143,57 @@ class MosquitoCrawler:
         except Exception as e:
             logger.error(f"Błąd parsowania sitemapy {sitemap_url}: {e}")
             return []
+
+    def fetch_product_targets_from_categories(
+        self, limit: int = 1000, max_pages_per_subcat: int = 4
+    ) -> list[tuple[str, str, str]]:
+        """Pobiera listę (product_url, main_category, subcategory) z drzewa kategorii."""
+        home_url = f"{self.base_url}/pl/"
+        logger.info(f"Pobieranie menu kategorii z {home_url}")
+        home_html = self.fetch_page(home_url)
+        if not home_html:
+            return []
+
+        subcategories = parse_category_menu(home_html)
+        if not subcategories:
+            logger.warning("Nie znaleziono podkategorii w menu sklepu.")
+            return []
+
+        logger.info(f"Znaleziono {len(subcategories)} podkategorii. Zbieranie adresów produktów...")
+        target_buffer = max(int(limit * 1.2), limit + 50)
+        targets: list[tuple[str, str, str]] = []
+        seen_urls: set[str] = set()
+        exhausted: set[str] = set()
+
+        for page in range(1, max_pages_per_subcat + 1):
+            for main_cat, sub_cat, sub_url in subcategories:
+                if len(targets) >= target_buffer:
+                    return targets
+                if sub_url in exhausted:
+                    continue
+
+                page_url = sub_url if page == 1 else f"{sub_url}?page={page}"
+                page_html = self.fetch_page(page_url)
+                if not page_html:
+                    exhausted.add(sub_url)
+                    continue
+
+                urls = parse_category_page(page_html)
+                added_here = 0
+                for u in urls:
+                    if u not in seen_urls:
+                        seen_urls.add(u)
+                        targets.append((u, main_cat, sub_cat))
+                        added_here += 1
+
+                logger.info(
+                    f"  [{main_cat} > {sub_cat}] str. {page}: "
+                    f"+{added_here} nowych (łącznie: {len(targets)})"
+                )
+                if added_here == 0:
+                    exhausted.add(sub_url)
+
+        return targets
 
     def close(self) -> None:
         """Zamyka klienta HTTP."""
