@@ -228,11 +228,11 @@ h3,
   object-fit: cover;
 }
 
-/* 4 kolumny produktów w rzędzie na desktopie */
+/* 4 kolumny produktów w rzędzie na desktopie (obsługuje wrapper .js-product w PrestaShop 8.2) */
 @media (min-width: 992px) {
-  .featured-products .products .product-miniature,
-  #products .products .product-miniature,
-  .product-accessories .products .product-miniature {
+  .products > .js-product,
+  .featured-products .products > .product-miniature,
+  .product-accessories .products > .product-miniature {
     flex: 0 0 25%;
     max-width: 25%;
   }
@@ -240,6 +240,8 @@ h3,
 
 /* --- Karty produktów (proporcje 3:4 dla zdjęć modowych) --- */
 .product-miniature {
+  width: 100%;
+  max-width: 100%;
   margin-bottom: 1.75rem;
 }
 
@@ -268,6 +270,11 @@ h3,
   display: block;
   width: 100%;
   height: auto;
+}
+
+.product-miniature .product-thumbnail picture {
+  display: block;
+  width: 100%;
 }
 
 .product-miniature .product-thumbnail img {
@@ -314,6 +321,21 @@ h3,
   margin-top: 0.25rem;
 }
 
+/* Subtelne etykiety na karcie produktu (jak na Mosquito) */
+.product-flags .product-flag {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--mosquito-ink);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.2rem 0.65rem;
+  min-height: 0;
+  min-width: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  text-transform: none;
+}
+
+.product-flags .product-flag.discount,
 .product-flag.discount,
 .discount-percentage {
   background-color: var(--mosquito-accent);
