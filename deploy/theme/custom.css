@@ -1,0 +1,276 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+/*
+ * Stylizacja sklepu inspirowana mosquito-sklep.pl dla motywu PrestaShop 8.2 "classic".
+ * Plik docelowy w kontenerze: /var/www/html/themes/classic/assets/css/custom.css
+ */
+
+:root {
+  --mosquito-bg: #ffffff;
+  --mosquito-surface: #f5f4f2;
+  --mosquito-surface-alt: #efefef;
+  --mosquito-ink: #111111;
+  --mosquito-text: #333333;
+  --mosquito-muted: #767676;
+  --mosquito-border: #e5e5e5;
+  --mosquito-accent: #ca5058;
+}
+
+body {
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--mosquito-text);
+  background-color: var(--mosquito-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--mosquito-ink);
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--mosquito-accent);
+  text-decoration: none;
+}
+
+/* --- Nagłówek i górna nawigacja --- */
+#header {
+  background: var(--mosquito-bg);
+  color: var(--mosquito-ink);
+  box-shadow: none;
+  border-bottom: 1px solid var(--mosquito-border);
+}
+
+#header .header-nav {
+  border-bottom: 1px solid var(--mosquito-border);
+  background: var(--mosquito-surface);
+  font-size: 0.8125rem;
+}
+
+#header .header-top {
+  padding: 1rem 0;
+}
+
+#header .header-top .menu > ul > li > a {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mosquito-ink);
+  padding: 0.5rem 0.75rem;
+}
+
+#header .header-top .menu > ul > li > a:hover {
+  color: var(--mosquito-accent);
+}
+
+/* Wyszukiwarka */
+#search_widget form input[type="text"] {
+  background: var(--mosquito-surface);
+  border: 1px solid var(--mosquito-border);
+  border-radius: 0;
+  color: var(--mosquito-ink);
+  font-size: 0.875rem;
+}
+
+/* --- Przyciski (CTA) --- */
+.btn-primary,
+.btn-secondary,
+.btn-outline-primary {
+  border-radius: 0;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.8125rem;
+  padding: 0.75rem 1.5rem;
+  box-shadow: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--mosquito-ink);
+  border-color: var(--mosquito-ink);
+  color: #ffffff;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background-color: #333333;
+  border-color: #333333;
+  color: #ffffff;
+}
+
+.btn-secondary {
+  background-color: var(--mosquito-bg);
+  border: 1px solid var(--mosquito-ink);
+  color: var(--mosquito-ink);
+}
+
+.btn-secondary:hover {
+  background-color: var(--mosquito-ink);
+  color: #ffffff;
+}
+
+/* --- Sekcja główna i tytuły --- */
+#wrapper {
+  background: var(--mosquito-bg);
+  box-shadow: none;
+  padding-top: 1.5rem;
+}
+
+.h1,
+.h2,
+.h3,
+h1,
+h2,
+h3,
+.products-section-title {
+  font-weight: 600;
+  color: var(--mosquito-ink);
+  letter-spacing: 0.02em;
+}
+
+.products-section-title {
+  text-transform: uppercase;
+  font-size: 1.25rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 1.75rem;
+}
+
+/* --- Karty produktów (proporcje 3:4 dla zdjęć modowych) --- */
+.product-miniature {
+  margin-bottom: 1.75rem;
+}
+
+.product-miniature .thumbnail-container {
+  background: var(--mosquito-bg);
+  box-shadow: none;
+  border: 1px solid transparent;
+  width: 100%;
+  height: auto;
+  transition: border-color 0.2s ease;
+}
+
+.product-miniature .thumbnail-container:hover {
+  box-shadow: none;
+  border-color: var(--mosquito-border);
+}
+
+.product-miniature .thumbnail-top {
+  overflow: hidden;
+  background: var(--mosquito-surface);
+}
+
+.product-miniature .product-thumbnail img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  object-position: top center;
+  margin: 0;
+  transition: transform 0.35s ease;
+}
+
+.product-miniature .thumbnail-container:hover .product-thumbnail img {
+  transform: scale(1.03);
+}
+
+.product-miniature .product-description {
+  position: static;
+  width: 100%;
+  height: auto;
+  background: var(--mosquito-bg);
+  padding: 0.75rem 0.25rem 0.5rem;
+  text-align: left;
+}
+
+.product-miniature .product-title {
+  margin-top: 0;
+  text-align: left;
+}
+
+.product-miniature .product-title a {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--mosquito-text);
+  line-height: 1.4;
+}
+
+.product-miniature .product-price-and-shipping {
+  text-align: left;
+  font-weight: 600;
+  color: var(--mosquito-ink);
+  font-size: 0.9375rem;
+  margin-top: 0.25rem;
+}
+
+.product-flag.discount,
+.discount-percentage {
+  background-color: var(--mosquito-accent);
+  color: #ffffff;
+  border-radius: 0;
+  font-weight: 500;
+}
+
+/* --- Karta produktu (szczegóły) --- */
+.product-cover img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  object-position: top center;
+}
+
+.product-variants .input-color,
+.product-variants .input-radio + span {
+  border-radius: 0;
+}
+
+.product-prices .current-price {
+  color: var(--mosquito-ink);
+  font-weight: 600;
+}
+
+/* --- Koszyk i Checkout --- */
+.card {
+  border-radius: 0;
+  border: 1px solid var(--mosquito-border);
+  box-shadow: none;
+}
+
+body#checkout section.checkout-step {
+  border-radius: 0;
+  box-shadow: none;
+  border: 1px solid var(--mosquito-border);
+}
+
+/* --- Stopka --- */
+#footer {
+  background: var(--mosquito-surface);
+  color: var(--mosquito-text);
+  padding-top: 2.5rem;
+  margin-top: 3rem;
+  border-top: 1px solid var(--mosquito-border);
+}
+
+.footer-container {
+  background: transparent;
+  box-shadow: none;
+}
+
+.footer-container .h3,
+.footer-container h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mosquito-ink);
+}
+
+.footer-container li a {
+  color: var(--mosquito-muted);
+  font-size: 0.84rem;
+}
+
+.footer-container li a:hover {
+  color: var(--mosquito-ink);
+}
