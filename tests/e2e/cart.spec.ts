@@ -223,10 +223,232 @@ function shuffledIndexes(length: number): number[] {
   return order;
 }
 
-test('dodaje 10 produktów z dwóch kategorii i losowy wynik wyszukiwania', async ({ page }) => {
-  await page.goto('/', { timeout: stepTimeout });
+let testStarted = 0;
+
+function logStage(message: string): void {
+  console.log(`[cart +${Date.now() - testStarted} ms] ${message}`);
+}
+
+async function isAddToCartEnabled(page: Page): Promise<boolean> {
+  return page.locator('button[data-button-action="add-to-cart"]').evaluateAll((buttons) =>
+    buttons.some((button) => button instanceof HTMLButtonElement && !button.disabled),
+  );
+}
+
+async function chooseVariant(page: Page, action: () => Promise<void>): Promise<boolean> {
+  const refresh = page
+    .waitForResponse(
+      (response) => {
+        const body = response.request().postData() ?? '';
+        return response.request().method() === 'POST' && body.includes('action=refresh');
+      },
+      { timeout: elementTimeout },
+    )
+    .catch(() => undefined);
+  await action();
+  await refresh;
+  return page
+    .waitForFunction(
+      () => {
+        const button = document.querySelector('button[data-button-action="add-to-cart"]');
+        return button instanceof HTMLButtonElement && !button.disabled;
+      },
+      undefined,
+      { timeout: 1_000 },
+    )
+    .then(() => true)
+    .catch(() => false);
+}
+
+/**
+ * Domyślny rozmiar bywa niedostępny (przycisk Dodaj do koszyka ma atrybut disabled,
+ * a sklep pokazuje „Dostępny produkt z innymi opcjami”). Drugi argument
+ * page.waitForFunction jest danymi strony, nie limitem czasu, więc oczekiwanie
+ * aż ten przycisk sam się włączy trwa do końca limitu testu.
+ * Tutaj od razu przełączamy kolejne warianty i pomijamy produkt, gdy żaden nie jest dostępny.
+ */
+async function ensurePurchasableVariant(page: Page, label: string): Promise<boolean> {
+  const button = page.locator('button[data-button-action="add-to-cart"]');
+  const visible = await button
+    .waitFor({ state: 'visible', timeout: elementTimeout })
+    .then(() => true)
+    .catch(() => false);
+  if (!visible) {
+    logStage(`${label}: brak przycisku dodawania, pomijam`);
+    return false;
+  }
+  if (await isAddToCartEnabled(page)) {
+    return true;
+  }
+
+  const started = Date.now();
+  logStage(
+    `${label}: domyślny wariant ma wyłączone „Dodaj do koszyka”; nie czekam na samą zmianę stanu, sprawdzam pozostałe rozmiary`,
+  );
+
+  const selects = page.locator('.js-product-variants select');
+  const selectCount = await selects.count();
+  for (let index = 0; index < selectCount; index += 1) {
+    const options = await selects.nth(index).locator('option').evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        value: (node as HTMLOptionElement).value,
+        name: (node.textContent ?? '').trim(),
+        selected: (node as HTMLOptionElement).selected,
+      })),
+    );
+    for (const option of options) {
+      if (option.selected || option.value === '') {
+        continue;
+      }
+      const attempt = Date.now();
+      const enabled = await chooseVariant(page, () =>
+        selects.nth(index).selectOption(option.value, { timeout: elementTimeout }),
+      );
+      logStage(
+        `${label}: wariant ${option.name || option.value} ${enabled ? 'dostępny' : 'niedostępny'} po ${Date.now() - attempt} ms`,
+      );
+      if (enabled) {
+        return true;
+      }
+    }
+  }
+
+  const radios = page.locator('.js-product-variants input[type="radio"]');
+  const radioCount = await radios.count();
+  for (let index = 0; index < radioCount; index += 1) {
+    const radio = radios.nth(index);
+    if (await radio.isChecked()) {
+      continue;
+    }
+    const name = (await radio.getAttribute('title')) || (await radio.getAttribute('value')) || String(index);
+    const attempt = Date.now();
+    const enabled = await chooseVariant(page, () => radio.check({ force: true, timeout: elementTimeout }));
+    logStage(`${label}: wariant ${name} ${enabled ? 'dostępny' : 'niedostępny'} po ${Date.now() - attempt} ms`);
+    if (enabled) {
+      return true;
+    }
+  }
+
+  logStage(`${label}: żaden wariant nie jest dostępny, pomijam po ${Date.now() - started} ms`);
+  return false;
+}
+
+async function registerCustomer(page: Page): Promise<void> {
+  const started = Date.now();
+  const email = `e2e.${Date.now()}@example.com`;
+  const firstName = 'Anna';
+  const lastName = 'Testowa';
+  const password = `Test-${Date.now()}-Aa9!`;
+
+  await page.locator('#_desktop_user_info a[href*="/logowanie"]').click({ timeout: elementTimeout });
+  await page
+    .locator('a[data-link-action="display-register-form"]')
+    .click({ timeout: elementTimeout });
+
+  const form = page.locator('#customer-form');
+  await expect(form).toBeVisible({ timeout: elementTimeout });
+  await form.locator('#field-firstname').fill(firstName, { timeout: elementTimeout });
+  await form.locator('#field-lastname').fill(lastName, { timeout: elementTimeout });
+  await form.locator('#field-email').fill(email, { timeout: elementTimeout });
+  await form.locator('#field-password').fill(password, { timeout: elementTimeout });
+  await form.locator('input[name="psgdpr"]').check({ timeout: elementTimeout });
+  await form.locator('input[name="customer_privacy"]').check({ timeout: elementTimeout });
+  await form.locator('button[data-link-action="save-customer"]').click({ timeout: elementTimeout });
+
+  await expect(page.locator('#_desktop_user_info a.account')).toContainText(`${firstName} ${lastName}`, {
+    timeout: elementTimeout,
+  });
+  await expect(page.locator('#_desktop_user_info a.logout')).toBeVisible({ timeout: elementTimeout });
+  logStage(`rejestracja klienta: ${Date.now() - started} ms`);
+}
+
+async function placeOrder(page: Page, expectedLines: number, expectedPieces: number): Promise<void> {
+  await registerCustomer(page);
+
+  await page.locator('#_desktop_cart a[href]').click({ timeout: elementTimeout });
+  await expect(page.locator('li.cart-item')).toHaveCount(expectedLines, { timeout: elementTimeout });
+  await expect(page.locator('#_desktop_cart .cart-products-count')).toHaveText(`(${expectedPieces})`, {
+    timeout: elementTimeout,
+  });
+
+  await page.locator('.cart-detailed-actions a.btn-primary').click({ timeout: elementTimeout });
+  logStage('otwarto kasę z zachowanym koszykiem');
+
+  const address = page.locator('#checkout-addresses-step');
+  await expect(address.locator('#delivery-address')).toBeVisible({ timeout: stepTimeout });
+  await expect(address.locator('#field-id_country')).toHaveValue('14', { timeout: elementTimeout });
+  await address.locator('#field-alias').fill('Dom', { timeout: elementTimeout });
+  await address.locator('#field-firstname').fill('Anna', { timeout: elementTimeout });
+  await address.locator('#field-lastname').fill('Testowa', { timeout: elementTimeout });
+  await address.locator('#field-address1').fill('ul. Długa 1', { timeout: elementTimeout });
+  await address.locator('#field-postcode').fill('80-309', { timeout: elementTimeout });
+  await address.locator('#field-city').fill('Gdańsk', { timeout: elementTimeout });
+  await address.locator('#field-phone').fill('500600700', { timeout: elementTimeout });
+  await expect(address.locator('#use_same_address')).toBeChecked();
+  await address.locator('#delivery-address button[name="confirm-addresses"]').click({
+    timeout: elementTimeout,
+  });
+
+  const delivery = page.locator('#checkout-delivery-step.js-current-step');
+  await expect(delivery).toBeVisible({ timeout: stepTimeout });
+  const carrierOption = delivery.locator('.js-delivery-option').filter({ hasText: 'pobraniowa' });
+  await expect(carrierOption).toHaveCount(1, { timeout: elementTimeout });
+  const carrierName = (await carrierOption.locator('.carrier-name').innerText()).trim();
+  expect(carrierName).toMatch(/pobraniowa/i);
+  await carrierOption.locator('input[type="radio"]').check({ timeout: elementTimeout });
+  await expect(carrierOption.locator('input[type="radio"]')).toBeChecked();
+  await delivery.locator('button[name="confirmDeliveryOption"]').click({ timeout: elementTimeout });
+  logStage(`wybrano przewoźnika: ${carrierName}`);
+
+  const payment = page.locator('#checkout-payment-step.js-current-step');
+  await expect(payment).toBeVisible({ timeout: stepTimeout });
+  const cod = payment.locator('input[data-module-name="ps_cashondelivery"]');
+  await cod.check({ timeout: elementTimeout });
+  await expect(cod).toBeChecked();
+  await page.locator('#conditions-to-approve input[type="checkbox"]').check({ timeout: elementTimeout });
+  const placeOrderButton = page.locator('#payment-confirmation button[type="submit"]');
+  await expect(placeOrderButton).toBeEnabled({ timeout: elementTimeout });
+  await placeOrderButton.click({ timeout: elementTimeout });
+
+  await expect(page.locator('#content-hook_order_confirmation')).toContainText(
+    'Twoje zamówienie zostało potwierdzone',
+    { timeout: stepTimeout },
+  );
+  const details = page.locator('#order-details');
+  await expect(details).toContainText(/odbiorze/i, { timeout: elementTimeout });
+  await expect(details).toContainText(carrierName, { timeout: elementTimeout });
+  const reference = (await page.locator('#order-reference-value').innerText()).split(':').pop()?.trim() ?? '';
+  expect(reference).toMatch(/^[A-Z0-9]{8,9}$/);
+
+  const invoice = page.locator('#content-hook_order_confirmation a[href*="pdf-invoice"]');
+  await expect(invoice).toBeVisible({ timeout: elementTimeout });
+  const href = await invoice.getAttribute('href');
+  expect(href).toContain('pdf-invoice');
+  const pdfResponse = await page.request.get(new URL(href as string, page.url()).href);
+  expect(pdfResponse.ok()).toBe(true);
+  const pdf = await pdfResponse.body();
+  expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+  expect(pdf.length).toBeGreaterThan(1000);
+  logStage(`potwierdzono zamówienie ${reference}, faktura PDF ${pdf.length} B`);
+
+  await page.locator('#_desktop_user_info a.account').click({ timeout: elementTimeout });
+  await page.locator('#history-link').click({ timeout: elementTimeout });
+  const row = page.locator('table.table-labeled tbody tr').filter({ hasText: reference });
+  await expect(row).toHaveCount(1, { timeout: elementTimeout });
+  await expect(row.locator('.label')).toHaveText('Oczekiwanie na płatność przy odbiorze', {
+    timeout: elementTimeout,
+  });
+  await expect(row.locator('a[href*="pdf-invoice"]')).toBeVisible({ timeout: elementTimeout });
+}
+
+test('dodaje 10 produktów z dwóch kategorii, wyszukuje, usuwa 3 pozycje i składa zamówienie za pobraniem', async ({ page }) => {
+  testStarted = Date.now();
+  await page.goto('/', { timeout: stepTimeout, waitUntil: 'domcontentloaded' });
 
   const candidates = spreadAcrossCategories(await collectCandidates(page));
+  logStage(
+    `zebrano ${candidates.length} kandydatów z ${new Set(candidates.map((candidate) => candidate.categoryUrl)).size} kategorii`,
+  );
   const discoveredCategories = new Set(candidates.map((candidate) => candidate.categoryUrl));
   if (candidates.length < productsToAdd || discoveredCategories.size < 2) {
     throw new Error(
@@ -246,21 +468,17 @@ test('dodaje 10 produktów z dwóch kategorii i losowy wynik wyszukiwania', asyn
       break;
     }
 
-    await page.goto(candidate.href, { timeout: stepTimeout });
-    const addToCart = page.locator('button[data-button-action="add-to-cart"]');
-    await expect(addToCart).toBeVisible({ timeout: stepTimeout });
+    const opened = Date.now();
+    try {
+      await page.goto(candidate.href, { timeout: stepTimeout, waitUntil: 'domcontentloaded' });
+    } catch (error) {
+      logStage(`produkt ${candidate.id}: nawigacja nieudana po ${Date.now() - opened} ms (${String(error)})`);
+      continue;
+    }
+    logStage(`produkt ${candidate.id}: otwarto w ${Date.now() - opened} ms`);
 
-    const canAdd = await page
-      .waitForFunction(
-        () => {
-          const button = document.querySelector('button[data-button-action="add-to-cart"]');
-          return button instanceof HTMLButtonElement && !button.disabled;
-        },
-        { timeout: 2_000 },
-      )
-      .then(() => true)
-      .catch(() => false);
-    if (!canAdd) {
+    const addToCart = page.locator('button[data-button-action="add-to-cart"]');
+    if (!(await ensurePurchasableVariant(page, `produkt ${candidate.id}`))) {
       continue;
     }
 
@@ -309,7 +527,9 @@ test('dodaje 10 produktów z dwóch kategorii i losowy wynik wyszukiwania', asyn
       { timeout: stepTimeout },
     );
     expect(totalWeightKg).toBeLessThan(weightLimitKg);
+    logStage(`dodano ${addedProducts}/${productsToAdd}: ${productName}, ilość ${quantity}, ${totalPieces} szt., ${totalWeightKg.toFixed(2)} kg`);
   }
+  logStage(`koniec dodawania produktów: ${addedProducts} pozycji`);
 
   if (addedProducts < productsToAdd || addedCategories.size < 2 || addedQuantities.size < 2) {
     throw new Error(
@@ -327,6 +547,7 @@ test('dodaje 10 produktów z dwóch kategorii i losowy wynik wyszukiwania', asyn
     links.map((link) => (link as HTMLAnchorElement).pathname),
   );
   expect(new Set(productPaths).size).toBe(productsToAdd);
+  logStage(`koszyk ma ${productsToAdd} różnych pozycji`);
 
   const linesBefore = await readCartLines(page);
   const searchQuery = discoveredNames[0];
@@ -347,22 +568,18 @@ test('dodaje 10 produktów z dwóch kategorii i losowy wynik wyszukiwania', asyn
   let searchedProductPath = '';
   let quantityBefore = 0;
 
-  for (const index of shuffledIndexes(resultHrefs.length)) {
-    await page.goto(resultHrefs[index], { timeout: stepTimeout });
-    const addToCart = page.locator('button[data-button-action="add-to-cart"]');
-    await expect(addToCart).toBeVisible({ timeout: elementTimeout });
+  logStage(`wyszukiwanie „${searchQuery}”: ${resultHrefs.length} wyników`);
 
-    const canAdd = await page
-      .waitForFunction(
-        () => {
-          const button = document.querySelector('button[data-button-action="add-to-cart"]');
-          return button instanceof HTMLButtonElement && !button.disabled;
-        },
-        { timeout: 2_000 },
-      )
-      .then(() => true)
-      .catch(() => false);
-    if (!canAdd) {
+  for (const index of shuffledIndexes(resultHrefs.length)) {
+    const opened = Date.now();
+    try {
+      await page.goto(resultHrefs[index], { timeout: stepTimeout, waitUntil: 'domcontentloaded' });
+    } catch (error) {
+      logStage(`wynik wyszukiwania: nawigacja nieudana po ${Date.now() - opened} ms (${String(error)})`);
+      continue;
+    }
+    const addToCart = page.locator('button[data-button-action="add-to-cart"]');
+    if (!(await ensurePurchasableVariant(page, 'wynik wyszukiwania'))) {
       continue;
     }
 
@@ -420,6 +637,7 @@ test('dodaje 10 produktów z dwóch kategorii i losowy wynik wyszukiwania', asyn
   expect(quantityAfter).toBe(quantityBefore + 1);
   expect(linesAfter.reduce((sum, line) => sum + line.quantity, 0)).toBe(totalPieces);
   expect(linesAfter.length).toBe(linesBefore.length + (quantityBefore === 0 ? 1 : 0));
+  logStage(`po wyszukiwaniu koszyk ma ${linesAfter.length} pozycji i ${totalPieces} szt.`);
 
   const removable = await readRemovableLines(page);
   const productsToRemove = 3;
@@ -456,4 +674,7 @@ test('dodaje 10 produktów z dwóch kategorii i losowy wynik wyszukiwania', asyn
   expect(totalPieces - expectedPieces).toBe(
     toRemove.reduce((sum, line) => sum + line.quantity, 0),
   );
+  logStage(`usunięto ${productsToRemove} pozycje, zostało ${expectedLines} pozycji i ${expectedPieces} szt.`);
+
+  await placeOrder(page, expectedLines, expectedPieces);
 });
