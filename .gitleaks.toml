@@ -1,0 +1,6 @@
+[allowlist]
+description = "Wykluczenie statycznych stron fixture i wynikow testowych"
+paths = [
+    '''scraper/tests/fixtures/.*''',
+    '''scraper-results/.*''',
+]
