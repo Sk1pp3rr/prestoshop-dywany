@@ -395,8 +395,29 @@ async function placeOrder(page: Page, expectedLines: number, expectedPieces: num
   await expect(carrierOption).toHaveCount(1, { timeout: elementTimeout });
   const carrierName = (await carrierOption.locator('.carrier-name').innerText()).trim();
   expect(carrierName).toMatch(/pobraniowa/i);
-  await carrierOption.locator('input[type="radio"]').check({ timeout: elementTimeout });
-  await expect(carrierOption.locator('input[type="radio"]')).toBeChecked();
+  const carrierRadio = carrierOption.locator('input[type="radio"]');
+  // Classic (core.js) wysyła POST na data-url-update formularza #js-delivery,
+  // czyli akcję selectDeliveryOption, wyłącznie przy zdarzeniu change.
+  // Zaznaczone już radio nie emituje change, więc czekanie na odpowiedź trwałoby do timeoutu.
+  if (await carrierRadio.isChecked({ timeout: elementTimeout })) {
+    logStage(
+      `przewoźnik ${carrierName} jest już zaznaczony; selectDeliveryOption nie jest wysyłane bez zmiany opcji`,
+    );
+  } else {
+    const deliveryUpdate = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && response.url().includes('selectDeliveryOption'),
+      { timeout: elementTimeout },
+    );
+    await carrierRadio.check({ timeout: elementTimeout });
+    const deliveryResponse = await deliveryUpdate;
+    if (deliveryResponse.status() !== 200) {
+      throw new Error(
+        `selectDeliveryOption zwrócił HTTP ${deliveryResponse.status()} dla ${deliveryResponse.url()}.`,
+      );
+    }
+  }
+  await expect(carrierRadio).toBeChecked();
   await delivery.locator('button[name="confirmDeliveryOption"]').click({ timeout: elementTimeout });
   logStage(`wybrano przewoźnika: ${carrierName}`);
 
