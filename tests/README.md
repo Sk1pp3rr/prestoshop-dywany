@@ -24,7 +24,7 @@ tests/
 Skrypt testowy musi wykonać w całości w czasie **$\le 5\text{ minut}$** (ze stabilnością **3/3 uruchomień**) następujące kroki:
 
 1. **Dodanie do koszyka 10 produktów** w różnych ilościach, pochodzących z co najmniej **dwóch różnych kategorii** (z uwagą, by łączna waga koszyka nie przekroczyła limitu 50 kg).
-2. **Wyszukanie produktu po nazwie** (np. `dywan` lub `chodnik`) za pomocą wyszukiwarki sklepowej i dodanie do koszyka **losowego dostępnego produktu** spośród wyników.
+2. **Wyszukanie produktu po nazwie** (np. `sukienka` lub `bluza`) za pomocą wyszukiwarki sklepowej i dodanie do koszyka **losowego dostępnego produktu** spośród wyników.
 3. **Usunięcie z koszyka 3 produktów** (wraz z asercją sprawdzającą przeliczenie zawartości koszyka).
 4. **Rejestracja nowego konta klienta** (z unikalnym adresem e-mail).
 5. **Rozpoczęcie składania zamówienia** na zawartość koszyka (uzupełnienie/potwierdzenie adresu dostawy w Polsce).

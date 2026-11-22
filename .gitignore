@@ -58,3 +58,10 @@ deploy/backups/
 .DS_Store
 Thumbs.db
 *.log
+
+# Lokalne skrypty weryfikacyjne / pomocnicze (tylko na maszynie dewelopera)
+verify.py
+verify_*.py
+test_cms.py
+test_*.py
+deploy/test_*.py

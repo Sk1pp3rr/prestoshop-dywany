@@ -1,7 +1,7 @@
-# Sklep Internetowy PrestaShop 8.2.x – Dywany Łuszczów (`prestoshop-dywany`)
+# Sklep Internetowy PrestaShop 8.2.x – Mosquito
 
 Projekt studencki realizowany w ramach przedmiotu **Biznes Elektroniczny (Etap 1)**.  
-System odwzorowuje sklep internetowy z dywanami, chodnikami i wykładzinami na podstawie danych ze sklepu `https://dywanyluszczow.eu/`.
+System odwzorowuje sklep internetowy marki **Mosquito** na podstawie danych ze sklepu `https://mosquito-sklep.pl/` (polska marka odzieży damskiej – sukienki, bluzy, komplety, dresy w wariantach rozmiarowych XS–XL).
 
 ---
 
@@ -19,7 +19,7 @@ System odwzorowuje sklep internetowy z dywanami, chodnikami i wykładzinami na p
 
 | Katalog | Zawartość | Dokumentacja szczegółowa |
 | :--- | :--- | :--- |
-| `shop/` | Kod źródłowy sklepu, motyw potomny (`classic-dywany`), moduły własne, `Dockerfile` | [`shop/README.md`](shop/README.md) |
+| `shop/` | Kod źródłowy sklepu, motyw potomny (`classic-fashion`), moduły własne, `Dockerfile` | [`shop/README.md`](shop/README.md) |
 | `scraper/` | Kod źródłowy narzędzia do scrapowania wraz z testami jednostkowymi (`pytest`) | [`scraper/README.md`](scraper/README.md) |
 | `scraper-results/` | Wyniki scrapowania w UTF-8 (`JSON`) oraz do 20 przykładowych zdjęć | [`scraper-results/README.md`](scraper-results/README.md) |
 | `tests/` | Kod źródłowy automatycznych testów E2E w Playwright | [`tests/README.md`](tests/README.md) |

@@ -1,1 +1,2 @@
-"""Pakiet scrapera dla sklepu dywanyluszczow.eu (W2)."""
+"""Pakiet scrapera dla sklepu mosquito-sklep.pl (W2)."""
+
