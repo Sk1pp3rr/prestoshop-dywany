@@ -1,0 +1,24 @@
+parent: classic
+name: classic-fashion
+display_name: "Classic Fashion"
+version: 1.0.0
+author:
+  name: "prestoshop-dywany team"
+  email: "kontakt@prestoshop-dywany.local"
+  url: "https://github.com/Sk1pp3rr/prestoshop-dywany"
+
+meta:
+  compatibility:
+    from: 8.0.0
+    to: ~
+
+assets:
+  css:
+    all:
+      - id: classic-fashion-custom
+        path: assets/css/custom.css
+        priority: 1000
+
+global_settings:
+  configuration:
+    PS_IMAGE_QUALITY: png

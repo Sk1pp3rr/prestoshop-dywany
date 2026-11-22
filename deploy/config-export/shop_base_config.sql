@@ -12036,8 +12036,8 @@ LOCK TABLES `ps_homeslider_slides` WRITE;
 /*!40000 ALTER TABLE `ps_homeslider_slides` DISABLE KEYS */;
 INSERT INTO `ps_homeslider_slides` VALUES
 (1,1,1),
-(2,2,1),
-(3,3,1);
+(2,2,0),
+(3,3,0);
 /*!40000 ALTER TABLE `ps_homeslider_slides` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -12048,8 +12048,8 @@ UNLOCK TABLES;
 LOCK TABLES `ps_homeslider_slides_lang` WRITE;
 /*!40000 ALTER TABLE `ps_homeslider_slides_lang` DISABLE KEYS */;
 INSERT INTO `ps_homeslider_slides_lang` VALUES
-(1,1,'Sample 1','<h3>EXCEPTEUR OCCAECAT</h3>\n                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin tristique in tortor et dignissim. Quisque non tempor leo. Maecenas egestas sem elit</p>','sample-1','https://www.prestashop-project.org','sample-1.jpg'),
-(1,2,'Sample 1','<h3>EXCEPTEUR OCCAECAT</h3>\n                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin tristique in tortor et dignissim. Quisque non tempor leo. Maecenas egestas sem elit</p>','sample-1','https://www.prestashop-project.org','sample-1.jpg'),
+(1,1,'Nowa Kolekcja Mosquito','<h3>NOWA KOLEKCJA MOSQUITO</h3>\n                <p>Odkryj najnowsze trendy mody damskiej – sukienki, bluzy i eleganckie komplety prosto od polskich projektantów.</p>','Nowa Kolekcja Mosquito','/','sample-1.jpg'),
+(1,2,'Nowa Kolekcja Mosquito','<h3>NOWA KOLEKCJA MOSQUITO</h3>\n                <p>Odkryj najnowsze trendy mody damskiej – sukienki, bluzy i eleganckie komplety prosto od polskich projektantów.</p>','Nowa Kolekcja Mosquito','/','sample-1.jpg'),
 (2,1,'Sample 2','<h3>EXCEPTEUR OCCAECAT</h3>\n                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin tristique in tortor et dignissim. Quisque non tempor leo. Maecenas egestas sem elit</p>','sample-2','https://www.prestashop-project.org','sample-2.jpg'),
 (2,2,'Sample 2','<h3>EXCEPTEUR OCCAECAT</h3>\n                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin tristique in tortor et dignissim. Quisque non tempor leo. Maecenas egestas sem elit</p>','sample-2','https://www.prestashop-project.org','sample-2.jpg'),
 (3,1,'Sample 3','<h3>EXCEPTEUR OCCAECAT</h3>\n                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin tristique in tortor et dignissim. Quisque non tempor leo. Maecenas egestas sem elit</p>','sample-3','https://www.prestashop-project.org','sample-3.jpg'),
@@ -87595,7 +87595,7 @@ UNLOCK TABLES;
 LOCK TABLES `ps_shop` WRITE;
 /*!40000 ALTER TABLE `ps_shop` DISABLE KEYS */;
 INSERT INTO `ps_shop` VALUES
-(1,1,'PrestaShop','',2,'classic',1,0);
+(1,1,'PrestaShop','',2,'classic-fashion',1,0);
 /*!40000 ALTER TABLE `ps_shop` ENABLE KEYS */;
 UNLOCK TABLES;
 

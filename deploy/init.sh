@@ -16,6 +16,7 @@ SSL_CERT="${REPO_ROOT}/deploy/nginx/ssl/localhost.crt"
 CONFIG_SQL="${REPO_ROOT}/deploy/config-export/shop_base_config.sql"
 IMPORT_SCRIPT="${REPO_ROOT}/deploy/import_api.py"
 PRODUCTS_JSON="${REPO_ROOT}/scraper-results/products.json"
+THEME_ACTIVATE_SCRIPT="${REPO_ROOT}/deploy/activate-theme.sh"
 
 WITH_IMPORT=false
 if [[ "${1:-}" == "--with-import" ]]; then
@@ -76,6 +77,11 @@ if [[ -f "${CONFIG_SQL}" ]]; then
   docker exec prestashop_app rm -rf /var/www/html/var/cache/*
 else
   echo "Pominięto import SQL (brak pliku ${CONFIG_SQL})."
+fi
+
+if [[ -f "${THEME_ACTIVATE_SCRIPT}" ]]; then
+  echo "Wdrażanie motywu potomnego (classic-fashion) i banera..."
+  bash "${THEME_ACTIVATE_SCRIPT}"
 fi
 
 if [[ "${WITH_IMPORT}" == "true" ]]; then
