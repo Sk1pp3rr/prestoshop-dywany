@@ -13,7 +13,7 @@ docs/
 └── adr/                                            # Architecture Decision Records (minimum 3 wpisy) (D6)
     ├── README.md                                   # Spis i szablon decyzji architektonicznych (ADR)
     ├── 001-repo-structure-and-ci.md                # ADR-001: Struktura repozytorium i potok GitHub Actions CI
-    ├── 002-scraper-and-image-storage.md            # ADR-002: Wybór narzędzi scrapera i publikacja zdjęć w Releases
+    ├── 002-zmiana-sklepu-zrodlowego-mosquito.md    # ADR-002: Zmiana sklepu źródłowego na mosquito-sklep.pl
     └── 003-containers-ssl-and-data-init.md         # ADR-003: Architektura kontenerów, HTTPS i inicjalizacja danych
 ```
 
@@ -32,3 +32,4 @@ docs/
      2. **Rozważane opcje** (jakie alternatywy braliśmy pod uwagę),
      3. **Decyzja** (którą opcję wybraliśmy i dlaczego),
      4. **Konsekwencje** (plusy, minusy i wpływ m.in. na Etap 2 – Docker Swarm).
+   * Zapis architektury kontenerów: [ADR-003](adr/003-containers-ssl-and-data-init.md).
