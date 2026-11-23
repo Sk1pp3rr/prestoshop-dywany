@@ -40,3 +40,32 @@ def test_parse_product_page() -> None:
     sizes = [v.size for v in product.variants]
     assert "XS" in sizes or "S" in sizes
     assert all(v.price_gross == 80.0 for v in product.variants)
+
+
+def test_parse_product_page_with_additional_desc_blocks() -> None:
+    """Weryfikuje wyciąganie sekcji desc_1, desc_2, desc_3 oraz cech z .cvProductAdditionalDesc."""
+    sone_file = FIXTURES_DIR / "sone_page.html"
+    if not sone_file.exists():
+        return
+
+    url = (
+        "https://mosquito-sklep.pl/pl/sukienki/"
+        "5008317-sone-marszczona-sukienka-mini-z-poduszkami-i-dlugim-rekawem-brown.html"
+    )
+    html = sone_file.read_text(encoding="utf-8")
+    product = parse_product_page(html, url=url)
+
+    assert product is not None
+    assert product.external_id == "MMM0497"
+    assert "Modelka Alicja: 167 cm wzrostu, 84/62/90. Ma na sobie XS." in product.description
+    assert "Skład: 95% poliester, 5% lycra." in product.description
+    assert "Długość: XS-86, S-87, M-88, L-89." in product.description
+    assert "Fason: mini, dopasowany, z długim rękawem i poduszkami." in product.description
+    assert "Kolor: brązowy." in product.description
+    assert "Brązowa sukienka marszczona na biodrach" in product.description
+    assert "Elastyczna, przewiewna tkanina dobrze dopasowuje się do ciała" in product.description
+    assert product.attributes.get("Skład") == "95% poliester, 5% lycra."
+    assert product.attributes.get("Długość") == "XS-86, S-87, M-88, L-89."
+    assert product.attributes.get("Fason") == "mini, dopasowany, z długim rękawem i poduszkami."
+    assert product.attributes.get("Kolor") == "brązowy."
+    assert "Alicja" in product.attributes.get("Modelka", "")

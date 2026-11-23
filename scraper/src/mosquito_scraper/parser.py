@@ -163,14 +163,55 @@ def parse_product_page(
         if price_gross <= 0:
             raise ValueError(f"Nieprawidłowa lub brakująca cena dla URL: {url}")
 
-        # 4. Opis produktu
-        description: str = ""
-        if product_json and product_json.get("description"):
+        # 4. Opis produktu oraz cechy z bloków .cvProductAdditionalDesc (desc_1, desc_2, desc_3)
+        extra_attributes: dict[str, str] = {}
+        desc_parts: list[str] = []
+
+        desc_1_div = soup.select_one(".cvProductAdditionalDesc.desc_1")
+        if desc_1_div:
+            desc_1_lines: list[str] = []
+            for p_tag in desc_1_div.find_all("p"):
+                full_p = re.sub(r"\s+", " ", p_tag.get_text(" ", strip=True)).strip()
+                if not full_p:
+                    continue
+                strong_tag = p_tag.find(["strong", "b"])
+                if strong_tag:
+                    label_raw = (
+                        re.sub(r"\s+", " ", strong_tag.get_text(" ", strip=True))
+                        .strip()
+                        .rstrip(":")
+                    )
+                    val_raw = full_p[len(label_raw) :].lstrip(" :\xa0").strip()
+                    if label_raw and val_raw:
+                        desc_1_lines.append(f"{label_raw}: {val_raw}")
+                        if label_raw.lower().startswith("modelka"):
+                            model_name = label_raw[len("modelka") :].strip()
+                            extra_attributes["Modelka"] = (
+                                f"{model_name} ({val_raw})" if model_name else val_raw
+                            )
+                        else:
+                            extra_attributes[label_raw] = val_raw
+                        continue
+                desc_1_lines.append(full_p)
+            if desc_1_lines:
+                desc_parts.append("\n".join(desc_1_lines))
+
+        for sel in (".cvProductAdditionalDesc.desc_2", ".cvProductAdditionalDesc.desc_3"):
+            block = soup.select_one(sel)
+            if block:
+                block_text = re.sub(r"\s+", " ", block.get_text(" ", strip=True)).strip()
+                if block_text and block_text not in desc_parts:
+                    desc_parts.append(block_text)
+
+        description: str = "\n\n".join(desc_parts).strip()
+
+        if not description and product_json and product_json.get("description"):
             description = str(product_json["description"]).strip()
 
         if not description:
             desc_div = soup.select_one(
-                ".product-description, [id^='product-description-short'], #description"
+                ".product-description, [id^='product-description-short'], "
+                "#product-description, #description"
             )
             if desc_div:
                 description = desc_div.get_text(strip=True)
@@ -251,6 +292,7 @@ def parse_product_page(
 
         # 8. Cechy i atrybuty (Attributes)
         attributes: dict[str, str] = {"Producent": "Mosquito"}
+        attributes.update(extra_attributes)
         # Sprawdzamy czy zdefiniowano kolor
         for item in soup.select(".product-variants .product-variants-item"):
             label = item.select_one(".control-label")
@@ -259,6 +301,12 @@ def parse_product_page(
                 colors = [inp.get("title") for inp in item.select("input") if inp.get("title")]
                 if colors:
                     attributes["Kolor"] = ", ".join(colors)
+        if "Kolor" not in attributes:
+            color_switch = soup.select_one(".current-feature__name strong")
+            if color_switch:
+                color_txt = color_switch.get_text(strip=True)
+                if color_txt:
+                    attributes["Kolor"] = color_txt
 
         # 9. Identyfikator zewnętrzny (SKU / id z URL)
         external_id: str = ""
