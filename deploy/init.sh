@@ -142,6 +142,12 @@ INSERT INTO ps_webservice_permission (resource, method, id_webservice_account) V
   ('products', 'DELETE', @ws_id);
 SQL
 
+if [[ -f "${REPO_ROOT}/deploy/theme/custom.js" ]]; then
+  echo "Wgrywanie banera cookies (deploy/theme/custom.js)..."
+  docker cp "${REPO_ROOT}/deploy/theme/custom.js" prestashop_app:/var/www/html/themes/classic/assets/js/custom.js
+  docker exec prestashop_app chown www-data:www-data /var/www/html/themes/classic/assets/js/custom.js
+fi
+
 if [[ "${WITH_IMPORT}" == "true" ]]; then
   if [[ -f "${IMPORT_SCRIPT}" && -f "${PRODUCTS_JSON}" ]]; then
     echo "Uruchamianie importu produktów przez Webservice API..."
