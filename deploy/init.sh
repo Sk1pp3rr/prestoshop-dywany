@@ -119,19 +119,27 @@ SET @ws_id := (SELECT id_webservice_account FROM ps_webservice_account WHERE \`k
 INSERT IGNORE INTO ps_webservice_account_shop (id_webservice_account, id_shop)
 VALUES (@ws_id, 1);
 
-INSERT IGNORE INTO ps_webservice_permission (resource, method, id_webservice_account)
-SELECT r.res, m.meth, @ws_id
-FROM (
-  SELECT 'categories' AS res UNION ALL SELECT 'products' UNION ALL SELECT 'combinations'
-  UNION ALL SELECT 'stock_availables' UNION ALL SELECT 'images' UNION ALL SELECT 'product_options'
-  UNION ALL SELECT 'product_option_values' UNION ALL SELECT 'tax_rule_groups' UNION ALL SELECT 'languages'
-  UNION ALL SELECT 'carriers' UNION ALL SELECT 'weight_ranges' UNION ALL SELECT 'deliveries'
-  UNION ALL SELECT 'configurations' UNION ALL SELECT 'content_management_system'
-) r
-CROSS JOIN (
-  SELECT 'GET' AS meth UNION ALL SELECT 'POST' UNION ALL SELECT 'PUT'
-  UNION ALL SELECT 'PATCH' UNION ALL SELECT 'DELETE' UNION ALL SELECT 'HEAD'
-) m;
+# Minimalne uprawnienia (least privilege) wymagane wyłącznie przez deploy/import_api.py
+DELETE FROM ps_webservice_permission WHERE id_webservice_account = @ws_id;
+
+INSERT INTO ps_webservice_permission (resource, method, id_webservice_account) VALUES
+  ('languages', 'GET', @ws_id),
+  ('tax_rule_groups', 'GET', @ws_id),
+  ('product_options', 'GET', @ws_id),
+  ('product_options', 'POST', @ws_id),
+  ('product_option_values', 'GET', @ws_id),
+  ('product_option_values', 'POST', @ws_id),
+  ('combinations', 'GET', @ws_id),
+  ('combinations', 'POST', @ws_id),
+  ('stock_availables', 'GET', @ws_id),
+  ('stock_availables', 'PUT', @ws_id),
+  ('images', 'POST', @ws_id),
+  ('categories', 'GET', @ws_id),
+  ('categories', 'POST', @ws_id),
+  ('categories', 'DELETE', @ws_id),
+  ('products', 'GET', @ws_id),
+  ('products', 'POST', @ws_id),
+  ('products', 'DELETE', @ws_id);
 SQL
 
 if [[ "${WITH_IMPORT}" == "true" ]]; then
