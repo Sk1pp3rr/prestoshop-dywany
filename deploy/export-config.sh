@@ -68,10 +68,40 @@ IGNORED_DATA_TABLES=(
   "${DB_NAME}.ps_webservice_account"
   "${DB_NAME}.ps_webservice_account_shop"
   "${DB_NAME}.ps_webservice_permission"
+  # Katalog produktów i wyszukiwarka (ładowane czysto przez import_api.py)
+  "${DB_NAME}.ps_category_product"
+  "${DB_NAME}.ps_product"
+  "${DB_NAME}.ps_product_lang"
+  "${DB_NAME}.ps_product_shop"
+  "${DB_NAME}.ps_product_attribute"
+  "${DB_NAME}.ps_product_attribute_combination"
+  "${DB_NAME}.ps_product_attribute_image"
+  "${DB_NAME}.ps_product_attribute_lang"
+  "${DB_NAME}.ps_product_attribute_shop"
+  "${DB_NAME}.ps_product_carrier"
+  "${DB_NAME}.ps_product_country_tax"
+  "${DB_NAME}.ps_product_tag"
+  "${DB_NAME}.ps_product_sale"
+  "${DB_NAME}.ps_attribute"
+  "${DB_NAME}.ps_attribute_lang"
+  "${DB_NAME}.ps_attribute_shop"
+  "${DB_NAME}.ps_attribute_group"
+  "${DB_NAME}.ps_attribute_group_lang"
+  "${DB_NAME}.ps_attribute_group_shop"
+  "${DB_NAME}.ps_image"
+  "${DB_NAME}.ps_image_lang"
+  "${DB_NAME}.ps_image_shop"
+  "${DB_NAME}.ps_stock"
+  "${DB_NAME}.ps_stock_available"
+  "${DB_NAME}.ps_stock_mvt"
+  "${DB_NAME}.ps_search_index"
+  "${DB_NAME}.ps_search_word"
+  "${DB_NAME}.ps_layered_price_index"
+  "${DB_NAME}.ps_layered_product_attribute"
 )
 
-# Tabele użytkowników, pracowników, adresów i sesji pomijamy w całości (schemat + dane),
-# aby nie eksportować haseł/danych osobowych i nie nadpisywać lokalnego admina z .env.
+# Tabele użytkowników, pracowników, adresów, sesji oraz korzenia kategorii pomijamy w całości (schemat + dane),
+# aby nie eksportować haseł/danych osobowych i zachować lokalnego admina oraz kategorie bazowe (1, 2).
 IGNORED_FULL_TABLES=(
   "${DB_NAME}.ps_customer"
   "${DB_NAME}.ps_customer_group"
@@ -80,6 +110,10 @@ IGNORED_FULL_TABLES=(
   "${DB_NAME}.ps_employee"
   "${DB_NAME}.ps_employee_shop"
   "${DB_NAME}.ps_employee_session"
+  "${DB_NAME}.ps_category"
+  "${DB_NAME}.ps_category_group"
+  "${DB_NAME}.ps_category_lang"
+  "${DB_NAME}.ps_category_shop"
 )
 
 FULL_IGNORE_FLAGS=()
