@@ -51,23 +51,37 @@ echo "Uruchamianie kontenerów Dockera..."
 docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d
 
 echo "Oczekiwanie na gotowość bazy danych (prestashop_db)..."
+DB_READY=false
 for _ in $(seq 1 60); do
   if docker exec -e MYSQL_PWD="${DB_ROOT_PASSWD}" prestashop_db \
       mariadb-admin ping -h localhost -u root --silent >/dev/null 2>&1; then
+    DB_READY=true
     break
   fi
   sleep 2
 done
 
+if [[ "${DB_READY}" != "true" ]]; then
+  echo "Błąd: Baza danych (prestashop_db) nie uruchomiła się w wyznaczonym czasie (120s)." >&2
+  exit 1
+fi
+
 echo "Oczekiwanie na zakończenie instalacji PrestaShop (prestashop_app)..."
+PS_READY=false
 for _ in $(seq 1 90); do
   if docker exec prestashop_app test -f /var/www/html/app/config/parameters.php 2>/dev/null && \
      docker exec -e MYSQL_PWD="${DB_ROOT_PASSWD}" prestashop_db \
        mariadb -u root "${DB_NAME}" -e "SELECT 1 FROM ps_configuration LIMIT 1;" >/dev/null 2>&1; then
+    PS_READY=true
     break
   fi
   sleep 3
 done
+
+if [[ "${PS_READY}" != "true" ]]; then
+  echo "Błąd: PrestaShop (prestashop_app) nie zakończył instalacji w wyznaczonym czasie (270s)." >&2
+  exit 1
+fi
 
 if [[ -f "${CONFIG_SQL}" ]]; then
   echo "Wgrywanie bazowej konfiguracji z ${CONFIG_SQL}..."
@@ -76,6 +90,12 @@ if [[ -f "${CONFIG_SQL}" ]]; then
   docker exec prestashop_app rm -rf /var/www/html/var/cache/*
 else
   echo "Pominięto import SQL (brak pliku ${CONFIG_SQL})."
+fi
+
+if [[ -f "${REPO_ROOT}/deploy/theme/custom.js" ]]; then
+  echo "Wgrywanie banera cookies (deploy/theme/custom.js)..."
+  docker cp "${REPO_ROOT}/deploy/theme/custom.js" prestashop_app:/var/www/html/themes/classic/assets/js/custom.js
+  docker exec prestashop_app chown www-data:www-data /var/www/html/themes/classic/assets/js/custom.js
 fi
 
 if [[ "${WITH_IMPORT}" == "true" ]]; then
