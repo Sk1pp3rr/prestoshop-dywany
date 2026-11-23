@@ -5,23 +5,15 @@
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "mosquito_cookie_consent";
+  var COOKIE_NAME = "mosquito_cookie_consent";
   var COOKIE_MAX_AGE = 60 * 60 * 24 * 180; // 180 dni
 
   function readConsent() {
-    try {
-      var raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        return JSON.parse(raw);
-      }
-    } catch (_err) {
-      // Ignoruj błędy dostępu do localStorage
-    }
-    var match = document.cookie.match(new RegExp("(?:^|; )" + STORAGE_KEY + "=([^;]*)"));
+    var match = document.cookie.match(new RegExp("(?:^|; )" + COOKIE_NAME + "=([^;]*)"));
     if (match && match[1]) {
       try {
         return JSON.parse(decodeURIComponent(match[1]));
-      } catch (_err2) {
+      } catch (_err) {
         return null;
       }
     }
@@ -36,18 +28,15 @@
       updatedAt: new Date().toISOString()
     };
     var serialized = JSON.stringify(payload);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, serialized);
-    } catch (_err) {
-      // Ignoruj błędy zapisu do localStorage
-    }
+    var secureFlag = window.location.protocol === "https:" ? "; Secure" : "";
     document.cookie =
-      STORAGE_KEY +
+      COOKIE_NAME +
       "=" +
       encodeURIComponent(serialized) +
       "; path=/; max-age=" +
       COOKIE_MAX_AGE +
-      "; SameSite=Lax";
+      "; SameSite=Lax" +
+      secureFlag;
     window.dispatchEvent(new CustomEvent("cookieConsentUpdated", { detail: payload }));
   }
 
