@@ -92,6 +92,56 @@ else
   echo "Pominięto import SQL (brak pliku ${CONFIG_SQL})."
 fi
 
+# Automatyczna aktywacja Webservice API i lokalnego klucza z .env
+if [[ -z "${PRESTASHOP_API_KEY:-}" || "${PRESTASHOP_API_KEY}" == ChangeMe* ]]; then
+  PRESTASHOP_API_KEY="$(tr -dc 'A-Z0-9' </dev/urandom | head -c 32 || true)"
+  if grep -q '^PRESTASHOP_API_KEY=' "${ENV_FILE}"; then
+    sed -i "s/^PRESTASHOP_API_KEY=.*/PRESTASHOP_API_KEY=${PRESTASHOP_API_KEY}/" "${ENV_FILE}"
+  else
+    printf "\nPRESTASHOP_API_KEY=%s\n" "${PRESTASHOP_API_KEY}" >> "${ENV_FILE}"
+  fi
+  echo "Wygenerowano lokalny klucz PRESTASHOP_API_KEY w .env."
+fi
+
+echo "Aktywacja PrestaShop Webservice API dla lokalnego klucza..."
+docker exec -i -e MYSQL_PWD="${DB_ROOT_PASSWD}" prestashop_db \
+  mariadb -u root "${DB_NAME}" <<SQL
+INSERT INTO ps_configuration (name, value, date_add, date_upd)
+VALUES ('PS_WEBSERVICE', '1', NOW(), NOW())
+ON DUPLICATE KEY UPDATE value = '1', date_upd = NOW();
+
+INSERT INTO ps_webservice_account (\`key\`, description, class_name, is_module, module_name, active)
+SELECT '${PRESTASHOP_API_KEY}', 'init_sh_api', 'WebserviceRequest', 0, NULL, 1
+WHERE NOT EXISTS (SELECT 1 FROM ps_webservice_account WHERE \`key\` = '${PRESTASHOP_API_KEY}');
+
+SET @ws_id := (SELECT id_webservice_account FROM ps_webservice_account WHERE \`key\` = '${PRESTASHOP_API_KEY}' LIMIT 1);
+
+INSERT IGNORE INTO ps_webservice_account_shop (id_webservice_account, id_shop)
+VALUES (@ws_id, 1);
+
+# Minimalne uprawnienia (least privilege) wymagane wyłącznie przez deploy/import_api.py
+DELETE FROM ps_webservice_permission WHERE id_webservice_account = @ws_id;
+
+INSERT INTO ps_webservice_permission (resource, method, id_webservice_account) VALUES
+  ('languages', 'GET', @ws_id),
+  ('tax_rule_groups', 'GET', @ws_id),
+  ('product_options', 'GET', @ws_id),
+  ('product_options', 'POST', @ws_id),
+  ('product_option_values', 'GET', @ws_id),
+  ('product_option_values', 'POST', @ws_id),
+  ('combinations', 'GET', @ws_id),
+  ('combinations', 'POST', @ws_id),
+  ('stock_availables', 'GET', @ws_id),
+  ('stock_availables', 'PUT', @ws_id),
+  ('images', 'POST', @ws_id),
+  ('categories', 'GET', @ws_id),
+  ('categories', 'POST', @ws_id),
+  ('categories', 'DELETE', @ws_id),
+  ('products', 'GET', @ws_id),
+  ('products', 'POST', @ws_id),
+  ('products', 'DELETE', @ws_id);
+SQL
+
 if [[ -f "${REPO_ROOT}/deploy/theme/custom.js" ]]; then
   echo "Wgrywanie banera cookies (deploy/theme/custom.js)..."
   docker cp "${REPO_ROOT}/deploy/theme/custom.js" prestashop_app:/var/www/html/themes/classic/assets/js/custom.js
@@ -99,11 +149,9 @@ if [[ -f "${REPO_ROOT}/deploy/theme/custom.js" ]]; then
 fi
 
 if [[ "${WITH_IMPORT}" == "true" ]]; then
-  if [[ -z "${PRESTASHOP_API_KEY:-}" || "${PRESTASHOP_API_KEY}" == ChangeMe* ]]; then
-    echo "Ostrzeżenie: ustaw poprawny PRESTASHOP_API_KEY w .env przed uruchomieniem importu API." >&2
-  elif [[ -f "${IMPORT_SCRIPT}" && -f "${PRODUCTS_JSON}" ]]; then
+  if [[ -f "${IMPORT_SCRIPT}" && -f "${PRODUCTS_JSON}" ]]; then
     echo "Uruchamianie importu produktów przez Webservice API..."
-    python3 "${IMPORT_SCRIPT}" --input "${PRODUCTS_JSON}" --clean-demo
+    PRESTASHOP_API_KEY="${PRESTASHOP_API_KEY}" python3 "${IMPORT_SCRIPT}" --input "${PRODUCTS_JSON}" --clean-demo
   else
     echo "Pominięto import API (brak ${IMPORT_SCRIPT} lub ${PRODUCTS_JSON})."
   fi
