@@ -92,6 +92,12 @@ else
   echo "Pominięto import SQL (brak pliku ${CONFIG_SQL})."
 fi
 
+if [[ -f "${REPO_ROOT}/deploy/theme/custom.js" ]]; then
+  echo "Wgrywanie banera cookies (deploy/theme/custom.js)..."
+  docker cp "${REPO_ROOT}/deploy/theme/custom.js" prestashop_app:/var/www/html/themes/classic/assets/js/custom.js
+  docker exec prestashop_app chown www-data:www-data /var/www/html/themes/classic/assets/js/custom.js
+fi
+
 if [[ "${WITH_IMPORT}" == "true" ]]; then
   if [[ -z "${PRESTASHOP_API_KEY:-}" || "${PRESTASHOP_API_KEY}" == ChangeMe* ]]; then
     echo "Ostrzeżenie: ustaw poprawny PRESTASHOP_API_KEY w .env przed uruchomieniem importu API." >&2
