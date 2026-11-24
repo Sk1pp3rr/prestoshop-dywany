@@ -147,8 +147,15 @@ def test_parse_product_page_stock_sampling() -> None:
     assert len(valid) == 200
 
     out_of_stock_products = sum(1 for p in valid if all(v.stock_quantity == 0 for v in p.variants))
+    partial_oos_products = sum(
+        1
+        for p in valid
+        if any(v.stock_quantity == 0 for v in p.variants)
+        and any(v.stock_quantity > 0 for v in p.variants)
+    )
     ratio = out_of_stock_products / len(valid)
     assert 0.05 <= ratio <= 0.20, f"Odsetek produktów wyprzedanych: {ratio:.3f}"
+    assert partial_oos_products > 0, "Dostępne produkty powinny też mieć pojedyncze rozmiary 0"
     assert all(0 <= v.stock_quantity <= 10 for p in valid for v in p.variants)
 
 

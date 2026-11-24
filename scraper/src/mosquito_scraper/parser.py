@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_STOCK_CONFIG_PATH = Path(__file__).resolve().parents[2] / "stock_config.yaml"
 OUT_OF_STOCK_PROB = 0.12
+VARIANT_OUT_OF_STOCK_PROB = 0.10
 # Domyślne wagi dyskretne dla stanów 1–10 szt. (używane jako fallback przy braku pliku YAML).
 IN_STOCK_WEIGHTS: dict[int, float] = {
     1: 0.18,
@@ -51,17 +52,21 @@ def _build_cdf(weights: tuple[float, ...] | list[float]) -> list[float]:
 @lru_cache(maxsize=16)
 def load_stock_config(
     config_path: Path = DEFAULT_STOCK_CONFIG_PATH,
-) -> tuple[float, tuple[int, ...], tuple[float, ...]]:
+) -> tuple[float, float, tuple[int, ...], tuple[float, ...]]:
     """Wczytuje konfigurację rozkładu stanów z pliku YAML i buduje dystrybuantę."""
     if not config_path.exists():
         values = tuple(sorted(IN_STOCK_WEIGHTS))
         cdf = tuple(_build_cdf([IN_STOCK_WEIGHTS[v] for v in values]))
-        return OUT_OF_STOCK_PROB, values, cdf
+        return OUT_OF_STOCK_PROB, VARIANT_OUT_OF_STOCK_PROB, values, cdf
 
     raw = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
     out_prob = float(raw.get("out_of_stock_prob", OUT_OF_STOCK_PROB))
     if not 0.0 <= out_prob <= 1.0:
         raise ValueError("out_of_stock_prob w pliku YAML musi należeć do [0, 1].")
+
+    variant_out_prob = float(raw.get("variant_out_of_stock_prob", VARIANT_OUT_OF_STOCK_PROB))
+    if not 0.0 <= variant_out_prob <= 1.0:
+        raise ValueError("variant_out_of_stock_prob w pliku YAML musi należeć do [0, 1].")
 
     raw_weights = raw.get("in_stock_weights", IN_STOCK_WEIGHTS)
     if not isinstance(raw_weights, dict) or not raw_weights:
@@ -73,7 +78,7 @@ def load_stock_config(
         raise ValueError("Klucze w in_stock_weights muszą być dodatnimi liczbami całkowitymi.")
 
     cdf = tuple(_build_cdf([parsed_weights[v] for v in values]))
-    return out_prob, values, cdf
+    return out_prob, variant_out_prob, values, cdf
 
 
 def _sample_from_cdf(cdf: tuple[float, ...] | list[float], u: float) -> int:
@@ -90,7 +95,7 @@ def sample_stock_quantity(
     config_path: Path = DEFAULT_STOCK_CONFIG_PATH,
 ) -> int:
     """Losuje stan magazynowy metodą odwracania dystrybuanty na podstawie pliku YAML."""
-    cfg_prob, values, cdf = load_stock_config(config_path)
+    cfg_prob, _, values, cdf = load_stock_config(config_path)
     p_zero = cfg_prob if out_of_stock_prob is None else out_of_stock_prob
     if not 0.0 <= p_zero <= 1.0:
         raise ValueError("out_of_stock_prob musi należeć do przedziału [0, 1].")
@@ -413,10 +418,10 @@ def parse_product_page(
                             sizes.append(opt_text)
 
         generator = rng or _DEFAULT_RNG
-        out_prob, stock_values, stock_cdf = load_stock_config(stock_config_path)
+        out_prob, variant_out_prob, stock_values, stock_cdf = load_stock_config(stock_config_path)
         product_out_of_stock = generator.random() < out_prob
         for size in sizes:
-            if product_out_of_stock:
+            if product_out_of_stock or generator.random() < variant_out_prob:
                 qty = 0
             else:
                 qty = stock_values[_sample_from_cdf(stock_cdf, generator.random())]

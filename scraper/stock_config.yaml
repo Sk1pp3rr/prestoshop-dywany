@@ -1,6 +1,9 @@
 # Konfiguracja losowania stanów magazynowych metodą odwracania dystrybuanty (W3)
-# Prawdopodobieństwo, że produkt będzie wyprzedany (stan 0; wymóg W3: 0.05 - 0.20)
+# Prawdopodobieństwo, że cały produkt będzie wyprzedany (stan 0 na wszystkich wariantach; wymóg W3: 0.05 - 0.20)
 out_of_stock_prob: 0.12
+
+# Prawdopodobieństwo, że pojedynczy wariant (rozmiar) dostępnego produktu ma stan 0
+variant_out_of_stock_prob: 0.10
 
 # Wagi prawdopodobieństwa dla poszczególnych stanów dostępnych (1 - 10 szt.).
 # Wartości są automatycznie normalizowane do sumy 1.0 przy budowie dystrybuanty (CDF).
