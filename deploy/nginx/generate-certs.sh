@@ -3,6 +3,7 @@
 # Generowanie certyfikatu self-signed SSL dla localhost (Wymaganie W3)
 
 set -e
+export MSYS_NO_PATHCONV=1
 
 CERTS_DIR="$(cd "$(dirname "$0")" && pwd)/ssl"
 mkdir -p "$CERTS_DIR"
