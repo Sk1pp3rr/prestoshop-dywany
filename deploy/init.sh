@@ -97,6 +97,7 @@ fi
 if [[ -f "${THEME_ACTIVATE_SCRIPT}" ]]; then
   echo "Wdrażanie motywu potomnego (classic-fashion) i banera..."
   bash "${THEME_ACTIVATE_SCRIPT}"
+fi
 # Automatyczna aktywacja Webservice API i lokalnego klucza z .env
 if [[ -z "${PRESTASHOP_API_KEY:-}" || "${PRESTASHOP_API_KEY}" == ChangeMe* ]]; then
   PRESTASHOP_API_KEY="$(tr -dc 'A-Z0-9' </dev/urandom | head -c 32 || true)"
