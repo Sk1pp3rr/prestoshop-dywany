@@ -94,6 +94,30 @@ else
   echo "Pominięto import SQL (brak pliku ${CONFIG_SQL})."
 fi
 
+# Konfiguracja poczty SMTP dla Mailpit (W3)
+echo "Konfiguracja SMTP dla Mailpit..."
+docker exec -i -e MYSQL_PWD="${DB_ROOT_PASSWD}" prestashop_db \
+  mariadb -u root "${DB_NAME}" <<SQL
+UPDATE ps_configuration
+SET value = CASE name
+    WHEN 'PS_MAIL_METHOD' THEN '2'
+    WHEN 'PS_MAIL_SERVER' THEN 'mailpit'
+    WHEN 'PS_MAIL_SMTP_PORT' THEN '1025'
+    WHEN 'PS_MAIL_SMTP_ENCRYPTION' THEN 'off'
+    WHEN 'PS_MAIL_USER' THEN ''
+    WHEN 'PS_MAIL_PASSWD' THEN ''
+END
+WHERE name IN (
+    'PS_MAIL_METHOD',
+    'PS_MAIL_SERVER',
+    'PS_MAIL_SMTP_PORT',
+    'PS_MAIL_SMTP_ENCRYPTION',
+    'PS_MAIL_USER',
+    'PS_MAIL_PASSWD'
+);
+SQL
+docker exec prestashop_app rm -rf /var/www/html/var/cache/*
+
 if [[ -f "${THEME_ACTIVATE_SCRIPT}" ]]; then
   echo "Wdrażanie motywu potomnego (classic-fashion) i banera..."
   bash "${THEME_ACTIVATE_SCRIPT}"
