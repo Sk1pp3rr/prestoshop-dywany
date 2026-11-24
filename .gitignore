@@ -11,6 +11,7 @@ scraper/output/
 scraper/images/
 scraper/.scraper_state.json
 scraper-results/images_full/
+deploy/.images_cache/
 scraper-results/*.tar.gz
 scraper-results/*.zip
 
