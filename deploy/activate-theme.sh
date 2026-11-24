@@ -73,7 +73,11 @@ for slide_img in sample-1.jpg sample-2.jpg; do
 done
 
 echo "=== [5/6] Generowanie zdjec produktowych 3:4 (seed-images.php) ==="
-if [[ -f "${SEED_PHP}" ]]; then
+EXISTING_PRODUCTS="$(docker exec -e MYSQL_PWD="${DB_ROOT_PASSWD}" "${DB_CONTAINER}" \
+  mariadb -N -B -u root "${DB_NAME}" -e "SELECT COUNT(*) FROM ps_product;" 2>/dev/null | tr -d '[:space:]' || echo "0")"
+if [[ "${EXISTING_PRODUCTS:-0}" -gt 20 ]]; then
+  echo "Pominieto seed-images.php (wykryto ${EXISTING_PRODUCTS} zaimportowanych produktow — zdjecia zarzadzane przez import_api.py)."
+elif [[ -f "${SEED_PHP}" ]]; then
   docker exec "${APP_CONTAINER}" rm -rf /tmp/sample-images /tmp/products.json /tmp/seed-images.php
   if [[ -d "${SAMPLE_IMAGES_DIR}" ]]; then
     docker exec "${APP_CONTAINER}" mkdir -p /tmp/sample-images
@@ -90,6 +94,7 @@ fi
 
 echo "=== [6/6] Czyszczenie cache PrestaShop ==="
 docker exec "${APP_CONTAINER}" sh -c "rm -rf /var/www/html/var/cache/*" 2>/dev/null || true
-docker exec "${APP_CONTAINER}" php -d memory_limit=512M bin/console cache:clear 2>/dev/null || true
+docker exec -u www-data "${APP_CONTAINER}" php -d memory_limit=512M bin/console cache:clear 2>/dev/null || true
+docker exec "${APP_CONTAINER}" chown -R www-data:www-data /var/www/html/var/cache 2>/dev/null || true
 
 echo "Motyw '${THEME_NAME}' i zasoby Mosquito wdrozone pomyslnie!"

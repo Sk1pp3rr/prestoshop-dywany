@@ -46,7 +46,7 @@ Szczegółowy plan realizacji projektu oraz specyfikacja wymagań znajdują się
 
 3. **Inicjalizacja danych sklepu i zdjęć produktów (Krok 2/2):**
    ```bash
-   bash deploy/init.sh
+   bash deploy/init.sh --with-import
    ```
 
 * **Adres sklepu (HTTPS):** `https://localhost:8443` (przekierowanie HTTP $\rightarrow$ 301 HTTPS z portu `8080`)
