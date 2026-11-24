@@ -2,13 +2,110 @@
 
 import json
 import logging
+import random
 import re
+from functools import lru_cache
+from pathlib import Path
 
+import yaml
 from bs4 import BeautifulSoup
 
 from mosquito_scraper.models import ProductVariant, ScrapedProduct
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_STOCK_CONFIG_PATH = Path(__file__).resolve().parents[2] / "stock_config.yaml"
+OUT_OF_STOCK_PROB = 0.12
+VARIANT_OUT_OF_STOCK_PROB = 0.10
+# Domyślne wagi dyskretne dla stanów 1–10 szt. (używane jako fallback przy braku pliku YAML).
+IN_STOCK_WEIGHTS: dict[int, float] = {
+    1: 0.18,
+    2: 0.16,
+    3: 0.14,
+    4: 0.12,
+    5: 0.10,
+    6: 0.09,
+    7: 0.07,
+    8: 0.06,
+    9: 0.04,
+    10: 0.04,
+}
+_DEFAULT_RNG = random.Random()
+
+
+def _build_cdf(weights: tuple[float, ...] | list[float]) -> list[float]:
+    """Buduje znormalizowaną dystrybuantę (CDF) na podstawie wag dyskretnych."""
+    total = sum(weights)
+    if total <= 0:
+        raise ValueError("Suma wag rozkładu musi być dodatnia.")
+    cdf: list[float] = []
+    acc = 0.0
+    for w in weights:
+        if w < 0:
+            raise ValueError("Wagi rozkładu nie mogą być ujemne.")
+        acc += w / total
+        cdf.append(acc)
+    cdf[-1] = 1.0
+    return cdf
+
+
+@lru_cache(maxsize=16)
+def load_stock_config(
+    config_path: Path = DEFAULT_STOCK_CONFIG_PATH,
+) -> tuple[float, float, tuple[int, ...], tuple[float, ...]]:
+    """Wczytuje konfigurację rozkładu stanów z pliku YAML i buduje dystrybuantę."""
+    if not config_path.exists():
+        values = tuple(sorted(IN_STOCK_WEIGHTS))
+        cdf = tuple(_build_cdf([IN_STOCK_WEIGHTS[v] for v in values]))
+        return OUT_OF_STOCK_PROB, VARIANT_OUT_OF_STOCK_PROB, values, cdf
+
+    raw = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    out_prob = float(raw.get("out_of_stock_prob", OUT_OF_STOCK_PROB))
+    if not 0.0 <= out_prob <= 1.0:
+        raise ValueError("out_of_stock_prob w pliku YAML musi należeć do [0, 1].")
+
+    variant_out_prob = float(raw.get("variant_out_of_stock_prob", VARIANT_OUT_OF_STOCK_PROB))
+    if not 0.0 <= variant_out_prob <= 1.0:
+        raise ValueError("variant_out_of_stock_prob w pliku YAML musi należeć do [0, 1].")
+
+    raw_weights = raw.get("in_stock_weights", IN_STOCK_WEIGHTS)
+    if not isinstance(raw_weights, dict) or not raw_weights:
+        raise ValueError("in_stock_weights w pliku YAML musi być niepustym słownikiem.")
+
+    parsed_weights = {int(k): float(v) for k, v in raw_weights.items()}
+    values = tuple(sorted(parsed_weights))
+    if any(v <= 0 for v in values):
+        raise ValueError("Klucze w in_stock_weights muszą być dodatnimi liczbami całkowitymi.")
+
+    cdf = tuple(_build_cdf([parsed_weights[v] for v in values]))
+    return out_prob, variant_out_prob, values, cdf
+
+
+def _sample_from_cdf(cdf: tuple[float, ...] | list[float], u: float) -> int:
+    """Zwraca indeks wartości przez odwrócenie dystrybuanty dla u z [0, 1)."""
+    for idx, threshold in enumerate(cdf):
+        if u <= threshold:
+            return idx
+    return len(cdf) - 1
+
+
+def sample_stock_quantity(
+    rng: random.Random | None = None,
+    out_of_stock_prob: float | None = None,
+    config_path: Path = DEFAULT_STOCK_CONFIG_PATH,
+) -> int:
+    """Losuje stan magazynowy metodą odwracania dystrybuanty na podstawie pliku YAML."""
+    cfg_prob, _, values, cdf = load_stock_config(config_path)
+    p_zero = cfg_prob if out_of_stock_prob is None else out_of_stock_prob
+    if not 0.0 <= p_zero <= 1.0:
+        raise ValueError("out_of_stock_prob musi należeć do przedziału [0, 1].")
+
+    generator = rng or _DEFAULT_RNG
+    u = generator.random()
+    if u < p_zero or p_zero >= 1.0:
+        return 0
+    u_in_stock = (u - p_zero) / (1.0 - p_zero)
+    return values[_sample_from_cdf(cdf, u_in_stock)]
 
 
 def parse_category_page(html_content: str) -> list[str]:
@@ -142,6 +239,8 @@ def parse_product_page(
     fallback_category: str = "Odzież damska",
     fallback_subcategory: str = "Sukienki",
     prefer_fallback_category: bool = False,
+    rng: random.Random | None = None,
+    stock_config_path: Path = DEFAULT_STOCK_CONFIG_PATH,
 ) -> ScrapedProduct | None:
     """Parsuje stronę produktu i zwraca zwalidowany obiekt ScrapedProduct."""
     soup = BeautifulSoup(html_content, "html.parser")
@@ -318,13 +417,20 @@ def parse_product_page(
                         if opt_text and opt_text not in sizes:
                             sizes.append(opt_text)
 
+        generator = rng or _DEFAULT_RNG
+        out_prob, variant_out_prob, stock_values, stock_cdf = load_stock_config(stock_config_path)
+        product_out_of_stock = generator.random() < out_prob
         for size in sizes:
+            if product_out_of_stock or generator.random() < variant_out_prob:
+                qty = 0
+            else:
+                qty = stock_values[_sample_from_cdf(stock_cdf, generator.random())]
             variants.append(
                 ProductVariant(
                     size=size,
                     price_gross=price_gross,
                     weight_kg=0.5,
-                    stock_quantity=5,
+                    stock_quantity=qty,
                 )
             )
 
