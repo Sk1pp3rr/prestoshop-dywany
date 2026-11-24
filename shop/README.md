@@ -9,16 +9,15 @@ Ten katalog zawiera obraz kontenerowy sklepu, dostosowania wyglądu (motyw potom
 
 ```text
 shop/
-├── Dockerfile                      # Definicja obrazu PrestaShop 8.2.x (PHP 8.1, linux/amd64)
-├── config/                         # Dodatkowe pliki konfiguracyjne PHP (np. php.ini - limity uploadu)
 ├── themes/
-│   └── classic-dywany/             # Motyw potomny (Child Theme) dziedziczący po 'classic' (D1)
+│   └── classic-fashion/            # Motyw potomny (Child Theme) dziedziczący po 'classic' (D1)
 │       ├── config/
 │       │   └── theme.yml           # Konfiguracja motywu potomnego (parent: classic)
 │       ├── assets/
 │       │   ├── css/custom.css      # Style własne (responsywność 360px, kontrast WCAG >= 85)
-│       │   └── img/                # Banery tematyczne (dywany) i grafiki motywu
-│       └── templates/              # Nadpisane szablony Smarty (.tpl), np. stopka, karta produktu
+│       │   └── img/                # Banery tematyczne (Mosquito) i grafiki motywu
+│       ├── modules/                # Nadpisane szablony modułów (slider, featured, specials, newsletter)
+│       └── templates/              # Nadpisane szablony Smarty (.tpl), np. nagłówek, stopka, karta produktu
 └── modules/
     └── ps_omnibusprice/            # Moduł wyświetlający najniższą cenę z 30 dni przed obniżką (D3)
 ```

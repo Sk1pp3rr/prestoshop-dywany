@@ -119,6 +119,8 @@ def load_env_file(repo_root: Path) -> dict[str, str]:
 def normalize_release_url(raw_url: str) -> str:
     """Zamienia URL strony tagu GitHub Releases na bezpośredni adres archiwum images.zip."""
     url = raw_url.strip()
+    if url.lower() in {"none", "skip", "off"}:
+        return ""
     if not url or "OWNER/REPO" in url:
         return DEFAULT_RELEASE_ARCHIVE_URL
     tag_match = re.match(r"^(https://github\.com/[^/]+/[^/]+)/releases/tag/([^/?#]+)", url)
@@ -947,10 +949,14 @@ class ExistingProductInfo:
     image_count: int = 0
     combinations: dict[str, tuple[int, bool]] = field(default_factory=dict)
     stock_rows: list[dict[str, Any]] = field(default_factory=list)
+    specific_prices: list[dict[str, Any]] = field(default_factory=list)
 
 
-def preload_existing_catalog(api: PrestaShopAPI) -> dict[str, ExistingProductInfo]:
-    """Pobiera istniejące produkty, kombinacje i stany w celu szybkiej aktualizacji PUT."""
+def preload_existing_catalog(
+    api: PrestaShopAPI,
+    load_specific_prices: bool = False,
+) -> dict[str, ExistingProductInfo]:
+    """Pobiera istniejące produkty, warianty, stany i promocje do szybkiej aktualizacji PUT."""
     prods_data = api.get_json("products", {"display": "full"})
     by_ref: dict[str, ExistingProductInfo] = {}
     by_id: dict[int, ExistingProductInfo] = {}
@@ -992,6 +998,21 @@ def preload_existing_catalog(api: PrestaShopAPI) -> dict[str, ExistingProductInf
         pid = int(sa.get("id_product", 0))
         if pid in by_id:
             by_id[pid].stock_rows.append(sa)
+
+    if load_specific_prices:
+        sp_data = api.get_json(
+            "specific_prices",
+            {
+                "display": (
+                    "[id,id_product,id_product_attribute,from_quantity,"
+                    "reduction,reduction_tax,reduction_type,from,to]"
+                )
+            },
+        )
+        for sp in sp_data.get("specific_prices", []):
+            pid = int(sp.get("id_product", 0))
+            if pid in by_id:
+                by_id[pid].specific_prices.append(sp)
 
     return by_ref
 
@@ -1142,17 +1163,171 @@ def sync_stock_for_product(
         api.put_xml(f"stock_availables/{sa_id}", ET.tostring(root, encoding="utf-8"))
 
 
+PROMO_REDUCTION_RATES: tuple[float, ...] = (0.10, 0.15, 0.20)
+
+
+def select_promo_discounts(
+    records: list[PreparedRecord],
+    promo_count: int,
+    featured_refs: set[str] | None = None,
+) -> dict[str, float]:
+    """Wybiera deterministycznie produkty objęte promocją cenową (wymaganie D3 >= 20).
+
+    Rozkłada promocje równomiernie pomiędzy kategorie główne oraz wyróżnione produkty
+    ze strony głównej, preferując dostępne produkty wielowariantowe.
+    """
+    if promo_count <= 0:
+        return {}
+
+    featured = featured_refs or set()
+    chosen_refs: list[str] = []
+    seen: set[str] = set()
+
+    for rec in records:
+        if len(chosen_refs) >= min(4, promo_count):
+            break
+        stocks, _ = extract_variant_stocks(rec.item)
+        if rec.ref in featured and rec.is_primary_ext_id and sum(stocks) > 0:
+            chosen_refs.append(rec.ref)
+            seen.add(rec.ref)
+
+    buckets: dict[str, list[str]] = {}
+    fallback_available: list[str] = []
+    for rec in records:
+        if rec.ref in seen:
+            continue
+        stocks, _ = extract_variant_stocks(rec.item)
+        if sum(stocks) <= 0:
+            continue
+        raw_path = rec.item.get("category_path") or ["Odzież damska"]
+        main_cat = sanitize_catalog_text(str(raw_path[0]), 128).lower()
+        if rec.is_primary_ext_id and len(rec.item.get("variants") or []) >= 2:
+            buckets.setdefault(main_cat, []).append(rec.ref)
+        else:
+            fallback_available.append(rec.ref)
+
+    progressed = True
+    while len(chosen_refs) < promo_count and progressed:
+        progressed = False
+        for cat_refs in buckets.values():
+            if cat_refs and len(chosen_refs) < promo_count:
+                ref = cat_refs.pop(0)
+                chosen_refs.append(ref)
+                seen.add(ref)
+                progressed = True
+
+    for ref in fallback_available:
+        if len(chosen_refs) >= promo_count:
+            break
+        if ref not in seen:
+            chosen_refs.append(ref)
+            seen.add(ref)
+
+    for rec in records:
+        if len(chosen_refs) >= promo_count:
+            break
+        if rec.ref not in seen:
+            chosen_refs.append(rec.ref)
+            seen.add(rec.ref)
+
+    return {
+        ref: PROMO_REDUCTION_RATES[idx % len(PROMO_REDUCTION_RATES)]
+        for idx, ref in enumerate(chosen_refs)
+    }
+
+
+def build_specific_price_xml(
+    product_id: int,
+    reduction: float,
+    specific_price_id: int | None = None,
+) -> bytes:
+    """Buduje dokument XML dla zasobu specific_prices w PrestaShop 8.2."""
+    root = ET.Element("prestashop")
+    sp = ET.SubElement(root, "specific_price")
+    if specific_price_id is not None:
+        ET.SubElement(sp, "id").text = str(specific_price_id)
+    ET.SubElement(sp, "id_shop_group").text = "0"
+    ET.SubElement(sp, "id_shop").text = "1"
+    ET.SubElement(sp, "id_cart").text = "0"
+    ET.SubElement(sp, "id_product").text = str(product_id)
+    ET.SubElement(sp, "id_product_attribute").text = "0"
+    ET.SubElement(sp, "id_currency").text = "0"
+    ET.SubElement(sp, "id_specific_price_rule").text = "0"
+    ET.SubElement(sp, "id_country").text = "0"
+    ET.SubElement(sp, "id_group").text = "0"
+    ET.SubElement(sp, "id_customer").text = "0"
+    ET.SubElement(sp, "price").text = "-1.000000"
+    ET.SubElement(sp, "from_quantity").text = "1"
+    ET.SubElement(sp, "reduction").text = f"{reduction:.6f}"
+    ET.SubElement(sp, "reduction_tax").text = "1"
+    ET.SubElement(sp, "reduction_type").text = "percentage"
+    ET.SubElement(sp, "from").text = "0000-00-00 00:00:00"
+    ET.SubElement(sp, "to").text = "0000-00-00 00:00:00"
+    return ET.tostring(root, encoding="utf-8")
+
+
+def sync_specific_price_for_product(
+    api: PrestaShopAPI,
+    product_id: int,
+    target_reduction: float,
+    cached_rows: list[dict[str, Any]] | None = None,
+) -> str:
+    """Idempotentnie tworzy lub aktualizuje promocję cenową produktu (D3)."""
+    if cached_rows is not None:
+        rows = cached_rows
+    else:
+        data = api.get_json(
+            "specific_prices",
+            {
+                "display": (
+                    "[id,id_product,id_product_attribute,from_quantity,"
+                    "reduction,reduction_tax,reduction_type,from,to]"
+                ),
+                "filter[id_product]": str(product_id),
+            },
+        )
+        rows = data.get("specific_prices", [])
+
+    matching_base_rows = [
+        r
+        for r in rows
+        if int(r.get("id_product_attribute", 0)) == 0 and int(r.get("from_quantity", 1)) == 1
+    ]
+
+    if matching_base_rows:
+        primary = matching_base_rows[0]
+        sp_id = int(primary["id"])
+        cur_type = str(primary.get("reduction_type") or "")
+        cur_red = float(primary.get("reduction") or 0.0)
+        cur_tax = str(primary.get("reduction_tax", "1"))
+        for extra in matching_base_rows[1:]:
+            api.delete(f"specific_prices/{int(extra['id'])}")
+        if cur_type == "percentage" and cur_tax == "1" and abs(cur_red - target_reduction) < 1e-5:
+            return "UNCHANGED"
+        xml_body = build_specific_price_xml(product_id, target_reduction, specific_price_id=sp_id)
+        api.put_xml(f"specific_prices/{sp_id}", xml_body)
+        return "UPDATED"
+
+    xml_body = build_specific_price_xml(product_id, target_reduction)
+    api.post_xml("specific_prices", xml_body)
+    return "CREATED"
+
+
 def run_dry_run(
     records: list[PreparedRecord],
     initial_rejected: int,
     simulate_update: bool,
+    promo_count: int = 30,
 ) -> tuple[int, int, int]:
     total = len(records)
     out_of_stock_products = 0
+    multi_variant_products = 0
     all_variant_stocks: list[int] = []
     all_product_totals: list[int] = []
 
     for rec in records:
+        if len(rec.item.get("variants") or []) >= 2:
+            multi_variant_products += 1
         stocks, _ = extract_variant_stocks(rec.item)
         prod_total = sum(stocks)
         if prod_total == 0:
@@ -1160,11 +1335,12 @@ def run_dry_run(
         all_variant_stocks.extend(stocks)
         all_product_totals.append(prod_total)
 
+    promo_map = select_promo_discounts(records, promo_count)
     pct_zero = (out_of_stock_products / total * 100.0) if total else 0.0
     max_var = max(all_variant_stocks) if all_variant_stocks else 0
     max_prod = max(all_product_totals) if all_product_totals else 0
 
-    logger.info("--- [DRY-RUN] Weryfikacja danych i reguł magazynowych ---")
+    logger.info("--- [DRY-RUN] Weryfikacja danych, reguł magazynowych i promocji (D3) ---")
     logger.info("Poprawne rekordy: %d | Odrzucone na wejściu: %d", total, initial_rejected)
     logger.info(
         "Stany wariantów: 0–%d szt. | Maksymalna suma produktu (id_product_attribute=0): %d szt.",
@@ -1177,6 +1353,14 @@ def run_dry_run(
         total,
         pct_zero,
         "OK" if 5.0 <= pct_zero <= 20.0 else "BŁĄD",
+    )
+    logger.info(
+        "Produkty z >= 2 wariantami: %d [wymóg D3 >= 5: %s] | "
+        "Promocje cenowe: %d [wymóg D3 >= 20: %s]",
+        multi_variant_products,
+        "OK" if multi_variant_products >= 5 else "BŁĄD",
+        len(promo_map),
+        "OK" if len(promo_map) >= 20 else "UWAGA",
     )
 
     if simulate_update:
@@ -1236,6 +1420,17 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=12,
         help="Liczba dostępnych produktów przypiętych do Strony głównej (domyślnie 12)",
+    )
+    parser.add_argument(
+        "--promo-count",
+        type=int,
+        default=30,
+        help="Liczba produktów objętych promocją cenową (domyślnie 30, wymóg D3 >= 20)",
+    )
+    parser.add_argument(
+        "--promo-only",
+        action="store_true",
+        help="Synchronizuj wyłącznie promocje cenowe (specific_prices) dla istniejącego katalogu",
     )
     parser.add_argument(
         "--clean-demo",
@@ -1311,7 +1506,12 @@ def main() -> None:
     records, initial_rejected = prepare_records(raw_products)
 
     if args.dry_run:
-        created, updated, rejected = run_dry_run(records, initial_rejected, args.simulate_update)
+        created, updated, rejected = run_dry_run(
+            records,
+            initial_rejected,
+            args.simulate_update,
+            promo_count=args.promo_count,
+        )
         elapsed = time.monotonic() - started_at
         print(
             f"Podsumowanie importu: Created={created}, Updated={updated}, Rejected={rejected} "
@@ -1334,21 +1534,57 @@ def main() -> None:
         or f"https://{env.get('PS_DOMAIN', 'localhost:8443')}"
     ).strip()
 
+    api = PrestaShopAPI(base_url=base_url, api_key=api_key, verify_ssl=False)
+
+    featured_refs: set[str] = set()
+    for rec in records:
+        if len(featured_refs) >= args.featured_count:
+            break
+        if sum(extract_variant_stocks(rec.item)[0]) > 0:
+            featured_refs.add(rec.ref)
+
+    promo_discounts = select_promo_discounts(records, args.promo_count, featured_refs=featured_refs)
+
+    if args.promo_only:
+        if not promo_discounts:
+            logger.info("Brak promocji do synchronizacji (--promo-count <= 0).")
+            return
+        set_configuration_value(api, "PS_SPECIFIC_PRICE_FEATURE_ACTIVE", "1")
+        existing_catalog = preload_existing_catalog(api, load_specific_prices=True)
+        promo_created = 0
+        promo_updated = 0
+        promo_unchanged = 0
+        promo_missing = 0
+        for ref, red in promo_discounts.items():
+            info = existing_catalog.get(ref)
+            if info is None:
+                promo_missing += 1
+                logger.warning("Pominięto promocję dla ref=%s (produkt nie istnieje w bazie).", ref)
+                continue
+            res = sync_specific_price_for_product(
+                api, info.product_id, red, cached_rows=info.specific_prices
+            )
+            if res == "CREATED":
+                promo_created += 1
+            elif res == "UPDATED":
+                promo_updated += 1
+            else:
+                promo_unchanged += 1
+        elapsed = time.monotonic() - started_at
+        summary = (
+            f"Podsumowanie promocji (D3): Created={promo_created}, Updated={promo_updated}, "
+            f"Unchanged={promo_unchanged}, Missing={promo_missing} (czas: {elapsed:.1f}s)."
+        )
+        logger.info(summary)
+        print(summary)
+        return
+
     archive_url = (
         args.archive_url
         or os.environ.get("IMAGES_RELEASE_ARCHIVE_URL")
         or env.get("IMAGES_RELEASE_ARCHIVE_URL")
         or DEFAULT_RELEASE_ARCHIVE_URL
     )
-
-    image_resolver = ImageResolver(
-        archive_url=archive_url,
-        cache_dir=repo_root / "deploy" / ".images_cache",
-        sample_dir=repo_root / "scraper-results" / "images",
-    )
-    image_resolver.prepare()
-
-    api = PrestaShopAPI(base_url=base_url, api_key=api_key, verify_ssl=False)
 
     if args.clean_demo:
         keep_cats = {
@@ -1362,6 +1598,8 @@ def main() -> None:
     lang_ids = get_active_languages(api)
     tax_map = find_tax_rule_group_map(api)
     set_configuration_value(api, "PS_JPEG_QUALITY", "72")
+    if promo_discounts:
+        set_configuration_value(api, "PS_SPECIFIC_PRICE_FEATURE_ACTIVE", "1")
 
     cat_cache, main_cat_ids = sync_categories(api, records, lang_ids)
     if main_cat_ids:
@@ -1371,19 +1609,26 @@ def main() -> None:
 
     _, size_cache = sync_size_options(api, records, lang_ids)
     feat_map, fval_map = sync_product_features(api, records, lang_ids, workers=args.workers)
-    existing_catalog = preload_existing_catalog(api)
+    existing_catalog = preload_existing_catalog(api, load_specific_prices=bool(promo_discounts))
 
-    featured_refs: set[str] = set()
-    for rec in records:
-        if len(featured_refs) >= args.featured_count:
-            break
-        if sum(extract_variant_stocks(rec.item)[0]) > 0:
-            featured_refs.add(rec.ref)
+    products_needing_imgs = sum(
+        1
+        for rec in records
+        if (existing_catalog[rec.ref].image_count if rec.ref in existing_catalog else 0) == 0
+    )
+    effective_archive_url = archive_url if products_needing_imgs > 50 else "none"
+    image_resolver = ImageResolver(
+        archive_url=effective_archive_url,
+        cache_dir=repo_root / "deploy" / ".images_cache",
+        sample_dir=repo_root / "scraper-results" / "images",
+    )
+    image_resolver.prepare()
 
     logger.info(
-        "Start fazy produktów: rekordów=%d | istniejących=%d | języki=%s | wątki=%d",
+        "Start fazy produktów: rekordów=%d | istniejących=%d | promocji=%d | języki=%s | wątki=%d",
         len(records),
         len(existing_catalog),
+        len(promo_discounts),
         lang_ids,
         args.workers,
     )
@@ -1569,6 +1814,12 @@ def main() -> None:
             else None
         )
         sync_stock_for_product(api, pid, attr_to_qty, cached_rows=cached_sa)
+
+        if rec.ref in promo_discounts:
+            cached_sp = existing_info.specific_prices if existing_info is not None else []
+            sync_specific_price_for_product(
+                api, pid, promo_discounts[rec.ref], cached_rows=cached_sp
+            )
 
         image_urls = [str(u) for u in (item.get("image_urls") or []) if str(u).strip()]
         desired_imgs = min(

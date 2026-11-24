@@ -11,6 +11,9 @@ export MSYS2_ARG_CONV_EXCL="*"
 # 4. Opcjonalnie uruchamia import produktów przez Webservice API (--with-import).
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if command -v cygpath >/dev/null 2>&1; then
+  REPO_ROOT="$(cygpath -m "${REPO_ROOT}")"
+fi
 ENV_FILE="${REPO_ROOT}/.env"
 ENV_EXAMPLE="${REPO_ROOT}/.env.example"
 COMPOSE_FILE="${REPO_ROOT}/deploy/compose.yaml"
@@ -127,8 +130,8 @@ if [[ -f "${THEME_ACTIVATE_SCRIPT}" ]]; then
   echo "Wdrażanie motywu potomnego (classic-fashion) i banera..."
   bash "${THEME_ACTIVATE_SCRIPT}"
 fi
-# Automatyczna aktywacja Webservice API i lokalnego klucza z .env
-if [[ -z "${PRESTASHOP_API_KEY:-}" || "${PRESTASHOP_API_KEY}" == ChangeMe* ]]; then
+# Automatyczna aktywacja Webservice API i lokalnego klucza z .env (wymagany format 32 znaków [A-Za-z0-9])
+if [[ ! "${PRESTASHOP_API_KEY:-}" =~ ^[A-Za-z0-9]{32}$ ]]; then
   PRESTASHOP_API_KEY="$(LC_ALL=C tr -dc 'A-Z0-9' </dev/urandom | head -c 32 || true)"
   if grep -q '^PRESTASHOP_API_KEY=' "${ENV_FILE}"; then
     TMP_ENV="$(mktemp "${ENV_FILE}.XXXXXX")"
@@ -193,7 +196,11 @@ INSERT INTO ps_webservice_permission (resource, method, id_webservice_account) V
   ('products', 'GET', @ws_id),
   ('products', 'POST', @ws_id),
   ('products', 'PUT', @ws_id),
-  ('products', 'DELETE', @ws_id);
+  ('products', 'DELETE', @ws_id),
+  ('specific_prices', 'GET', @ws_id),
+  ('specific_prices', 'POST', @ws_id),
+  ('specific_prices', 'PUT', @ws_id),
+  ('specific_prices', 'DELETE', @ws_id);
 SQL
 
 echo "Generowanie pliku .htaccess (przyjazne URL-e i Webservice API)..."
@@ -216,6 +223,10 @@ if [[ "${WITH_IMPORT}" == "true" ]]; then
     docker exec -u www-data prestashop_app php -d memory_limit=512M -r '
       require_once "/var/www/html/config/config.inc.php";
       Search::indexation(true);
+      $omnibus = Module::getInstanceByName("ps_omnibusprice");
+      if ($omnibus && method_exists($omnibus, "syncCatalogHistory")) {
+        $omnibus->syncCatalogHistory();
+      }
       foreach (Db::getInstance()->executeS("SELECT id_image FROM " . _DB_PREFIX_ . "image") as $row) {
         $id = (int)$row["id_image"];
         $p = _PS_PROD_IMG_DIR_ . implode("/", str_split((string)$id)) . "/" . $id . ".jpg";

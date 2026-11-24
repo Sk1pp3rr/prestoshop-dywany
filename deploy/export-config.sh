@@ -98,11 +98,13 @@ IGNORED_DATA_TABLES=(
   "${DB_NAME}.ps_search_word"
   "${DB_NAME}.ps_layered_price_index"
   "${DB_NAME}.ps_layered_product_attribute"
+  "${DB_NAME}.ps_specific_price"
 )
 
 # Tabele użytkowników, pracowników, adresów, sesji oraz korzenia kategorii pomijamy w całości (schemat + dane),
 # aby nie eksportować haseł/danych osobowych i zachować lokalnego admina oraz kategorie bazowe (1, 2).
 IGNORED_FULL_TABLES=(
+  "${DB_NAME}.ps_omnibusprice_history"
   "${DB_NAME}.ps_customer"
   "${DB_NAME}.ps_customer_group"
   "${DB_NAME}.ps_customer_session"
