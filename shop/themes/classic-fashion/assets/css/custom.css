@@ -1,7 +1,7 @@
 /* ==========================================================================
    PrestaShop 8.2 Child Theme: classic-fashion
-   Inspiracja i asortyment: Moda Damska Mosquito (mosquito-sklep.pl)
-   Optymalizacja: Responsywnosc 360px, WCAG AA Contrast, Lighthouse Acc >= 85
+   Wariant A: Uklad interfejsu 1:1 zblizony do mosquito-sklep.pl
+   Optymalizacja: Responsywnosc 360 px, Kontrast WCAG AA, Lighthouse Acc >= 85
    ========================================================================== */
 
 /* --- 1. Zmienne motywu (Design Tokens) --- */
@@ -11,25 +11,29 @@
   --fashion-surface-alt: #f0eeea;
   --fashion-ink: #111111;
   --fashion-text: #222222;
-  --fashion-muted: #595959;        /* Kontrast 7.0:1 na #ffffff, 6.1:1 na #f8f7f5 (WCAG AAA) */
-  --fashion-border: #e2e0dc;
+  --fashion-muted: #525252;        /* Kontrast 7.7:1 na #ffffff (WCAG AAA) */
+  --fashion-border: #dcd9d3;
   --fashion-border-light: #ecebe8;
-  --fashion-accent: #b82e38;       /* Karminowa czerwien - kontrast 4.7:1 na #ffffff (WCAG AA) */
-  --fashion-accent-hover: #96222b;
+  --fashion-accent: #a61e2a;       /* Gleboki karmin - kontrast 6.4:1 na #ffffff (WCAG AA+) */
+  --fashion-accent-hover: #82151f;
   --fashion-focus: #111111;
-  --fashion-radius: 0px;           /* Minimalistyczny, nowoczesny krĂłj kart */
+  --fashion-radius: 0px;
 }
 
 /* --- 2. Podstawowe style i typografia --- */
+html, body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: var(--fashion-text);
   background-color: var(--fashion-bg);
-  line-height: 1.5;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  overflow-x: hidden;
 }
 
 a {
@@ -43,7 +47,6 @@ a:hover {
   text-decoration: none;
 }
 
-/* Wskazniki fokusu pod katem WCAG Accessibility */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -57,94 +60,239 @@ h1, h2, h3, h4, h5, h6,
 .h1, .h2, .h3, .h4, .h5, .h6 {
   color: var(--fashion-ink);
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 
-/* --- 3. Naglowek sklepu (Header) --- */
+@media (min-width: 1200px) {
+  .container {
+    width: 100%;
+    max-width: 1460px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+/* --- 3. 3-rzedowy naglowek jak na mosquito-sklep.pl --- */
 #header {
   background: var(--fashion-bg);
   color: var(--fashion-ink);
-  border-bottom: 1px solid var(--fashion-border);
+  border-bottom: none;
+  box-shadow: none;
 }
 
-/* Pasek informacyjny nad calym naglowkiem (styl Mosquito) */
-#header::before {
-  content: "DARMOWA DOSTAWA OD 2000 ZĹ  |  NOWA KOLEKCJA MOSQUITO  |  ZWROT DO 14 DNI";
-  display: block;
+/* Rzad 1: Pasek promocyjny */
+.header-banner.msq-topbar {
   background: var(--fashion-ink);
   color: #ffffff;
+  padding: 0.35rem 0;
+  margin: 0;
   text-align: center;
-  font-size: 0.75rem;
+}
+
+.msq-topbar__inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.08em;
-  padding: 0.5rem 1rem;
   text-transform: uppercase;
+  color: #ffffff;
 }
 
-/* Gorny pasek uzytkownika, waluty i jezyka */
-#header .header-nav {
-  border-bottom: 1px solid var(--fashion-border-light);
+/* Rzad 2: Logo po lewej, ikony narzedzi + PL + PLN po prawej */
+#header .header-nav.msq-header-panel {
   background: var(--fashion-bg);
-  color: var(--fashion-ink);
-  font-size: 0.8125rem;
-  padding: 0.4rem 0;
+  border-bottom: none;
+  max-height: none;
+  padding: 0.55rem 0;
 }
 
-#header .header-nav a,
-#header .header-nav .material-icons,
-#header .header-nav .user-info,
-#header .header-nav .cart-preview,
-#header .header-nav .language-selector,
-#header .header-nav .currency-selector {
-  color: var(--fashion-ink);
+.msq-panel-desktop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
-#header .header-nav a:hover {
-  color: var(--fashion-accent);
+.msq-panel-logo {
+  flex: 0 0 auto;
+}
+
+.msq-logo-heading {
+  margin: 0;
+  line-height: 1;
+}
+
+.msq-logo-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+}
+
+.msq-logo-svg {
+  display: block;
+  width: 112px;
+  height: 36px;
+}
+
+#header .msq-panel-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.9rem;
+}
+
+#header .header-nav .msq-panel-tools a,
+#header .header-nav .msq-panel-tools button,
+#header .header-nav .msq-panel-tools .material-icons,
+#header .header-nav .msq-panel-tools .user-info,
+#header .header-nav .msq-panel-tools .cart-preview,
+#header .header-nav .msq-panel-tools .language-selector,
+#header .header-nav .msq-panel-tools .currency-selector {
+  color: var(--fashion-ink);
+  float: none !important;
+  margin: 0;
+}
+
+#header .header-nav #_desktop_user_info {
+  order: 1;
+  float: none !important;
+  margin: 0;
+}
+
+#header .header-nav #_desktop_cart {
+  order: 2;
+  float: none !important;
+  margin: 0;
+}
+
+#header .header-nav #_desktop_language_selector {
+  order: 3;
+  float: none !important;
+  margin: 0;
+}
+
+#header .header-nav #_desktop_currency_selector {
+  order: 4;
+  float: none !important;
+  margin: 0;
+}
+
+/* Czysta ikona konta w stylu Mosquito z zachowaniem tekstu dla czytnikow i testow */
+#_desktop_user_info .user-info > a:not(.account):not(.logout) {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 34px;
+}
+
+#_desktop_user_info .user-info > a:not(.account):not(.logout) span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 #header .header-nav .blockcart {
   background: transparent;
-  padding: 0.25rem 0.5rem;
+  padding: 0.2rem 0.25rem;
+  height: auto;
 }
 
-/* Glowna belka naglowka z logo, menu i wyszukiwarka */
-#header .header-top {
-  padding: 1rem 0;
-  background: var(--fashion-bg);
-}
-
-#header .header-top .header-top-right {
-  display: flex;
+#header .header-nav .blockcart .header {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1.25rem;
+  gap: 0.2rem;
+  position: relative;
 }
 
-#header .header-top .menu {
-  flex: 1 1 auto;
+#header .header-nav .blockcart .header > span.hidden-sm-down {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-#header .header-top .menu > ul {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem 0.75rem;
-  margin-bottom: 0;
-  padding-left: 0;
-}
-
-#header .header-top .menu > ul > li > a {
-  font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+#header .header-nav .blockcart .cart-products-count {
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--fashion-ink);
-  padding: 0.5rem 0.65rem;
 }
 
-#header .header-top .menu > ul > li > a:hover {
-  color: var(--fashion-accent);
+/* Rzad 3: Kategorie od lewej + wyszukiwarka po prawej w jednej linii */
+#header .header-top.msq-nav-search-bar {
+  padding: 0.3rem 0;
+  background: var(--fashion-bg);
+  border-top: 1px solid var(--fashion-border-light);
+  border-bottom: 1px solid var(--fashion-border-light);
+}
+
+@media (min-width: 768px) {
+  #header .msq-nav-search-bar .msq-top-flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  #header .msq-nav-search-bar #_desktop_top_menu {
+    order: 1;
+    flex: 1 1 auto;
+    width: auto;
+    padding: 0;
+    margin: 0;
+    border: none;
+  }
+
+  #header .msq-nav-search-bar .menu > ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0.2rem 1.25rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  #header .msq-nav-search-bar .menu > ul > li > a {
+    font-size: 0.875rem;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    color: var(--fashion-text);
+    padding: 0.45rem 0.15rem;
+    position: relative;
+    transition: color 0.2s ease;
+  }
+
+  #header .msq-nav-search-bar .menu > ul > li > a:hover {
+    color: var(--fashion-accent);
+  }
+
+  #header .msq-nav-search-bar #search_widget {
+    order: 2;
+    flex: 0 0 265px;
+    min-width: 230px;
+    max-width: 280px;
+    margin: 0;
+    float: none;
+  }
 }
 
 #header .header-top .sub-menu {
@@ -154,31 +302,46 @@ h1, h2, h3, h4, h5, h6,
   background: var(--fashion-bg);
 }
 
-/* Pole wyszukiwarki */
-#header .header-top #search_widget {
-  min-width: 240px;
-  margin-left: auto;
+/* Wyszukiwarka z ikona lupy po prawej (Wpisz czego szukasz) */
+#search_widget form {
+  position: relative;
+}
+
+#search_widget form i.search {
+  position: absolute;
+  left: auto;
+  right: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0;
+  color: var(--fashion-muted);
+  pointer-events: none;
+  z-index: 2;
+}
+
+#search_widget form i.clear {
+  right: 2.2rem;
+  color: var(--fashion-muted);
 }
 
 #search_widget form input[type="text"] {
-  background: var(--fashion-surface);
+  width: 100%;
+  background: #ffffff;
   border: 1px solid var(--fashion-border);
   border-radius: var(--fashion-radius);
   color: var(--fashion-ink);
-  font-size: 0.875rem;
-  padding: 0.6rem 2.5rem 0.6rem 0.85rem;
-  min-height: 44px;
+  font-size: 0.84rem;
+  padding: 0.4rem 2.35rem 0.4rem 0.75rem !important;
+  min-height: 38px;
+}
+
+#search_widget form input[type="text"]::placeholder {
+  color: var(--fashion-muted);
+  opacity: 1;
 }
 
 #search_widget form input[type="text"]:focus {
-  background: #ffffff;
   border-color: var(--fashion-ink);
-}
-
-#search_widget form button[type="submit"] {
-  color: var(--fashion-ink);
-  min-width: 44px;
-  min-height: 44px;
 }
 
 /* --- 4. Przyciski i elementy akcji (CTA) --- */
@@ -187,7 +350,7 @@ h1, h2, h3, h4, h5, h6,
 .btn-outline-primary {
   border-radius: var(--fashion-radius);
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   font-size: 0.8125rem;
   padding: 0.75rem 1.5rem;
@@ -224,131 +387,277 @@ h1, h2, h3, h4, h5, h6,
   color: #ffffff;
 }
 
-/* --- 5. Glowny kontener i uklad strony --- */
+/* --- 5. Glowny kontener i nawigacja okruszkowa --- */
 #wrapper {
   background: var(--fashion-bg);
   box-shadow: none;
-  padding-top: 1.5rem;
+  padding-top: 0.75rem;
 }
 
-.products-section-title {
+#index #wrapper {
+  padding-top: 0.35rem;
+}
+
+.breadcrumb {
+  background: transparent;
+  padding: 0.6rem 0;
+  font-size: 0.8125rem;
   text-transform: uppercase;
-  font-size: 1.35rem;
+  letter-spacing: 0.04em;
+}
+
+.breadcrumb li a {
+  color: var(--fashion-muted);
+}
+
+.breadcrumb li:last-child {
+  color: var(--fashion-ink);
   font-weight: 600;
-  letter-spacing: 0.06em;
-  margin-bottom: 2rem;
-  text-align: center;
-  position: relative;
-  padding-bottom: 0.75rem;
 }
 
-.products-section-title::after {
-  content: "";
-  display: block;
-  width: 50px;
-  height: 2px;
-  background: var(--fashion-ink);
-  margin: 0.5rem auto 0;
+/* --- 6. Asymetryczna siatka strony glownej mosquito-sklep.pl --- */
+.msq-home-canvas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-@media (min-width: 1200px) {
-  .container {
-    max-width: 1360px;
+.msq-home-canvas > #custom-text {
+  order: 10;
+}
+
+.msq-split-section {
+  margin: 0;
+}
+
+.featured-products .products.msq-split-pair,
+.featured-products .products.msq-quad-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.featured-products .products.msq-split-pair {
+  margin-bottom: 6px;
+}
+
+@media (min-width: 992px) {
+  .msq-home-canvas {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 6px;
+    align-items: stretch;
+  }
+
+  .msq-home-canvas > #carousel {
+    grid-column: 1 / span 5;
+    margin: 0;
+  }
+
+  .msq-home-canvas > .msq-split-section {
+    display: contents;
+  }
+
+  .msq-home-canvas .featured-products .products.msq-split-pair,
+  .msq-home-canvas .msq-split-pair {
+    grid-column: 6 / span 7;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0;
+  }
+
+  .msq-home-canvas .featured-products .products.msq-quad-row,
+  .msq-home-canvas .msq-quad-row {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin: 6px 0 10px;
+  }
+
+  .msq-home-canvas > .banner.msq-promo-banner {
+    grid-column: 1 / span 5;
+    margin: 0;
+  }
+
+  .msq-home-canvas > #custom-text {
+    grid-column: 1 / -1;
+    order: 10;
   }
 }
 
-/* --- 6. Slider na stronie glownej (ps_imageslider) --- */
-#index #carousel,
-#index .banner {
-  margin-bottom: 2.5rem;
-}
-
-#carousel .carousel-inner {
-  border-radius: var(--fashion-radius);
+/* Pionowy Hero Banner po lewej */
+#carousel.msq-hero-carousel {
+  position: relative;
+  left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
   overflow: hidden;
   background: var(--fashion-surface);
 }
 
-#carousel .carousel-inner img {
-  width: 100%;
-  max-height: 560px;
-  object-fit: cover;
-  object-position: center;
+.msq-home-canvas > #carousel .carousel-inner,
+.msq-home-canvas > #carousel .carousel-item,
+.msq-home-canvas > #carousel .msq-hero-link,
+.msq-home-canvas > #carousel .msq-hero-figure {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.msq-home-canvas > #carousel .msq-hero-link {
   display: block;
 }
 
-#carousel .caption {
-  background: rgba(17, 17, 17, 0.75);
-  color: #ffffff;
-  padding: 1.5rem 2rem;
-  border-radius: var(--fashion-radius);
-  max-width: 540px;
+#carousel.msq-hero-carousel .carousel-inner img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
 }
 
-#carousel .caption h3 {
+#carousel.msq-hero-carousel .msq-hero-caption {
+  position: absolute;
+  left: 1.5rem;
+  right: 1.5rem;
+  bottom: 2.25rem;
+  top: auto;
+  background: transparent;
+  padding: 0;
+  max-width: 100%;
+  text-align: left;
+}
+
+#carousel.msq-hero-carousel .msq-hero-caption h2.display-1 {
   color: #ffffff;
-  font-size: 1.75rem;
+  font-size: 1.9rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.15;
+  margin-bottom: 0.4rem;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
+}
+
+.msq-slide-kicker {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #f5f4f2;
+  margin-bottom: 0.25rem;
+}
+
+#carousel.msq-hero-carousel .msq-hero-caption p {
+  color: #f5f4f2;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-bottom: 0.65rem;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+}
+
+.msq-slide-btn {
+  display: inline-block;
+  background: #ffffff;
+  color: var(--fashion-ink);
+  padding: 0.5rem 1.15rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
-  margin-bottom: 0.5rem;
 }
 
-#carousel .caption p {
-  color: #f0eeea;
-  font-size: 0.9375rem;
-  line-height: 1.4;
-  margin-bottom: 0;
+#carousel.msq-hero-carousel .carousel-indicators {
+  bottom: 0.75rem;
 }
 
-#carousel .direction .carousel-control {
-  opacity: 0.75;
-  transition: opacity 0.2s ease;
+#carousel.msq-hero-carousel .direction .carousel-control {
+  opacity: 0.8;
 }
 
-#carousel .direction .carousel-control:hover {
+#carousel.msq-hero-carousel .direction .carousel-control:hover {
   opacity: 1;
 }
 
-/* --- 7. Karty produktĂłw (Siatka 4 kolumn modowych 3:4) --- */
-@media (min-width: 992px) {
-  .products > .js-product,
-  .featured-products .products > .product-miniature,
-  .product-accessories .products > .product-miniature {
-    flex: 0 0 25%;
-    max-width: 25%;
-  }
+/* Drugi pionowy baner (Bestsellery / Wyprzedaz) */
+.banner.msq-promo-banner {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--fashion-surface);
+  height: 100%;
 }
 
-@media (min-width: 576px) and (max-width: 991px) {
-  .products > .js-product,
-  .featured-products .products > .product-miniature,
-  .product-accessories .products > .product-miniature {
-    flex: 0 0 50%;
-    max-width: 50%;
+.banner.msq-promo-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  transition: transform 0.45s ease;
+}
+
+.banner.msq-promo-banner:hover img {
+  transform: scale(1.025);
+}
+
+.msq-banner-pill {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--fashion-ink);
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+}
+
+/* --- 7. Bezramkowe karty produktowe Mosquito 3:4 --- */
+.msq-split-pair > .js-product,
+.msq-quad-row > .js-product,
+#js-product-list .products > .js-product {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+#js-product-list .products {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+@media (max-width: 991px) {
+  #js-product-list .products {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
   }
 }
 
 .product-miniature {
   width: 100%;
   max-width: 100%;
-  margin-bottom: 2rem;
+  margin: 0;
 }
 
 .product-miniature .thumbnail-container {
-  background: var(--fashion-bg);
+  background: transparent;
   box-shadow: none;
-  border: 1px solid var(--fashion-border-light);
+  border: none;
   width: 100%;
   height: auto;
   padding: 0;
-  overflow: hidden;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
-}
-
-.product-miniature .thumbnail-container:hover {
-  border-color: var(--fashion-border);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  margin: 0;
+  overflow: visible;
 }
 
 .product-miniature .thumbnail-top {
@@ -359,15 +668,11 @@ h1, h2, h3, h4, h5, h6,
   position: relative;
 }
 
-.product-miniature .product-thumbnail {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
+.product-miniature .product-thumbnail,
 .product-miniature .product-thumbnail picture {
   display: block;
   width: 100%;
+  height: auto;
 }
 
 .product-miniature .product-thumbnail img {
@@ -382,33 +687,103 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .product-miniature .thumbnail-container:hover .product-thumbnail img {
-  transform: scale(1.035);
+  transform: scale(1.03);
+}
+
+/* Ukrycie narzutowego serduszka wishlist na miniaturach (jak w oryginale) */
+.product-miniature .wishlist-button-add {
+  display: none !important;
+}
+
+/* Zaokraglone pastylki flag w lewym DOLNYM rogu zdjecia */
+.product-miniature ul.product-flags {
+  position: absolute !important;
+  top: auto !important;
+  bottom: 10px !important;
+  left: 10px !important;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+ul.product-flags li.product-flag,
+ul.product-flags li.product-flag.new,
+ul.product-flags li.product-flag.on-sale,
+ul.product-flags li.product-flag.online-only,
+ul.product-flags li.product-flag.pack {
+  background: #1a1a1a !important;
+  color: #ffffff !important;
+  border-radius: 999px !important;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 0.22rem 0.65rem;
+  text-transform: none;
+  min-height: 0;
+  min-width: 0;
+  margin: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+ul.product-flags li.product-flag.discount,
+ul.product-flags li.product-flag.discount-percentage,
+ul.product-flags li.product-flag.discount-amount,
+.discount-percentage.discount-product,
+.discount-amount.discount-product {
+  background-color: var(--fashion-accent) !important;
+  color: #ffffff !important;
+  border-radius: 999px !important;
+}
+
+.product-miniature .msq-card-variants {
+  position: static;
+  opacity: 1;
+  background: transparent;
+  padding: 0.35rem 0 0;
+  text-align: left;
 }
 
 .product-miniature .product-description {
   position: static;
   width: 100%;
   height: auto;
-  background: var(--fashion-bg);
-  padding: 0.85rem 0.75rem 0.75rem;
+  background: transparent;
+  padding: 0.5rem 0.15rem 0.85rem;
   text-align: left;
 }
 
+.msq-card-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.msq-card-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .product-miniature .product-title {
-  margin-top: 0;
-  margin-bottom: 0.35rem;
+  margin: 0 0 0.2rem;
   text-align: left;
 }
 
 .product-miniature .product-title a {
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.84rem;
+  font-weight: 400;
   color: var(--fashion-text);
-  line-height: 1.4;
+  line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: 0;
 }
 
 .product-miniature .product-title a:hover {
@@ -419,51 +794,101 @@ h1, h2, h3, h4, h5, h6,
   text-align: left;
   font-weight: 700;
   color: var(--fashion-ink);
-  font-size: 1rem;
-  margin-top: 0.35rem;
+  font-size: 0.9rem;
+  margin: 0;
 }
 
 .product-miniature .regular-price {
   color: var(--fashion-muted);
   font-weight: 400;
-  font-size: 0.875rem;
+  font-size: 0.82rem;
   text-decoration: line-through;
   margin-right: 0.4rem;
 }
 
-/* Etykiety produktowe (Badges) */
-.product-flags {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+.msq-bag-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  color: var(--fashion-text);
+  padding: 2px;
 }
 
-.product-flags .product-flag {
-  background: rgba(17, 17, 17, 0.88);
-  color: #ffffff;
-  border-radius: var(--fashion-radius);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  padding: 0.25rem 0.55rem;
+.msq-bag-btn:hover {
+  color: var(--fashion-accent);
+}
+
+/* --- 8. Blok redakcyjny (Poznaj Mosquito) --- */
+#custom-text {
+  background: var(--fashion-surface);
+  border: 1px solid var(--fashion-border-light);
+  padding: 1.75rem 1.5rem;
+  margin: 1rem 0 0.5rem;
+  text-align: center;
+  box-shadow: none;
+}
+
+.msq-editorial-banner {
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+.msq-kicker {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  min-height: 0;
-  min-width: 0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  color: var(--fashion-accent);
+  margin-bottom: 0.35rem;
 }
 
-.product-flags .product-flag.discount,
-.product-flag.discount,
-.discount-percentage {
-  background-color: var(--fashion-accent);
-  color: #ffffff;
+.msq-editorial-banner h2 {
+  font-size: 1.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.6rem;
 }
 
-/* --- 8. Karta pojedynczego produktu (Product Details) --- */
+.msq-editorial-banner p {
+  color: var(--fashion-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+/* --- 9. Widok kategorii, karty produktu i koszyka --- */
+#js-product-list-top {
+  border-bottom: 1px solid var(--fashion-border-light);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+#search_filters {
+  background: var(--fashion-surface);
+  border: 1px solid var(--fashion-border);
+  padding: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+#search_filters .facet .facet-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fashion-ink);
+}
+
+#search_filters .custom-checkbox input[type="checkbox"] + span {
+  border-radius: 0;
+}
+
+#search_filters .ui-slider-range {
+  background: var(--fashion-ink);
+}
+
 .product-cover img {
   width: 100%;
   aspect-ratio: 3 / 4;
@@ -482,8 +907,8 @@ h1, h2, h3, h4, h5, h6,
 .product-variants .input-color,
 .product-variants .input-radio + span {
   border-radius: var(--fashion-radius);
-  min-width: 38px;
-  min-height: 38px;
+  min-width: 40px;
+  min-height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -499,7 +924,6 @@ h1, h2, h3, h4, h5, h6,
   padding: 0.85rem 2rem;
 }
 
-/* Styl dla modulu Omnibus (najniĹĽsza cena z 30 dni) */
 .ps-omnibus-price,
 .omnibus-price {
   font-size: 0.8125rem;
@@ -508,7 +932,6 @@ h1, h2, h3, h4, h5, h6,
   font-style: italic;
 }
 
-/* --- 9. Koszyk i Proces Zakupowy (Checkout) --- */
 .card {
   border-radius: var(--fashion-radius);
   border: 1px solid var(--fashion-border);
@@ -532,7 +955,6 @@ body#checkout section.checkout-step .step-title {
   color: var(--fashion-ink);
 }
 
-/* Formularze w checkout */
 .form-control {
   border-radius: var(--fashion-radius);
   border: 1px solid var(--fashion-border);
@@ -545,38 +967,245 @@ body#checkout section.checkout-step .step-title {
   box-shadow: none;
 }
 
-/* --- 10. Stopka sklepu (Footer) --- */
+/* --- 10. Dzielony Newsletter + Media o nas + Dlaczego Mosquito? + Stopka --- */
 #footer {
-  background: var(--fashion-surface);
+  background: var(--fashion-bg);
   color: var(--fashion-text);
-  padding-top: 3rem;
-  margin-top: 3.5rem;
-  border-top: 1px solid var(--fashion-border);
+  padding-top: 1.75rem;
+  margin-top: 2rem;
+  border-top: 1px solid var(--fashion-border-light);
+}
+
+#footer .block_newsletter.msq-newsletter-split {
+  background: var(--fashion-surface);
+  border: 1px solid var(--fashion-border-light);
+  padding: 0;
+  margin: 0 0 2rem;
+  width: 100%;
+  flex: 0 0 100%;
+  max-width: 100%;
+}
+
+.msq-newsletter-grid {
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  align-items: stretch;
+}
+
+.msq-newsletter-form {
+  padding: 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.msq-newsletter-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--fashion-ink);
+  margin: 0 0 0.45rem;
+}
+
+.msq-newsletter-lead {
+  font-size: 0.875rem;
+  color: var(--fashion-muted);
+  margin: 0 0 1rem;
+}
+
+.msq-newsletter-controls {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  position: relative;
+}
+
+#footer .block_newsletter.msq-newsletter-split form button[type="submit"].msq-newsletter-submit {
+  position: static !important;
+  right: auto !important;
+  bottom: auto !important;
+  background: var(--fashion-ink) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--fashion-ink) !important;
+  min-height: 44px;
+  height: 44px;
+  padding: 0 1.5rem;
+  flex: 0 0 auto;
+}
+
+.msq-newsletter-controls .input-wrapper {
+  flex: 1 1 auto;
+}
+
+.msq-newsletter-controls input[type="email"] {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--fashion-border);
+  background: #ffffff;
+  color: var(--fashion-ink);
+}
+
+.msq-newsletter-controls input[type="email"]::placeholder {
+  color: var(--fashion-muted);
+  opacity: 1;
+}
+
+.msq-newsletter-terms {
+  font-size: 0.78rem;
+  color: var(--fashion-muted);
+  margin: 0.6rem 0 0;
+}
+
+.msq-newsletter-figure {
+  position: relative;
+  height: 100%;
+  min-height: 230px;
+  margin: 0;
+  overflow: hidden;
+}
+
+.msq-newsletter-figure img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+  display: block;
+}
+
+.msq-newsletter-badge {
+  position: absolute;
+  right: 1.75rem;
+  bottom: 1.5rem;
+  background: rgba(17, 17, 17, 0.84);
+  color: #ffffff;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+}
+
+.msq-newsletter-badge strong {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.msq-newsletter-badge span {
+  font-size: 0.82rem;
+}
+
+/* Sekcja Media o nas */
+.msq-media-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  padding: 1.25rem 0 1.75rem;
+  border-bottom: 1px solid var(--fashion-border-light);
+}
+
+.msq-media-strip__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--fashion-muted);
+  margin: 0;
+}
+
+.msq-media-strip__logos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2.25rem;
+}
+
+.msq-media-logo {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--fashion-muted);
+}
+
+.msq-media-logo--serif {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+/* Sekcja Dlaczego Mosquito? (ikona + tekst) */
+.msq-why-boxes {
+  padding: 1.75rem 0;
+  border-bottom: 1px solid var(--fashion-border-light);
+  margin-bottom: 1.75rem;
+}
+
+.msq-why-boxes__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fashion-ink);
+  margin: 0 0 1rem;
+}
+
+.msq-why-boxes__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.msq-why-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.msq-why-box__icon {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--fashion-border);
+  color: var(--fashion-ink);
+  font-size: 0.95rem;
+}
+
+.msq-why-box h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0 0 0.2rem;
+  color: var(--fashion-ink);
+}
+
+.msq-why-box p {
+  font-size: 0.8rem;
+  color: var(--fashion-muted);
+  margin: 0;
+  line-height: 1.35;
 }
 
 .footer-container {
-  background: transparent;
+  background: var(--fashion-surface);
+  padding-top: 0.5rem;
   box-shadow: none;
 }
 
 .footer-container .h3,
-.footer-container h3 {
+.footer-container h3,
+.footer-container .block-contact-title {
   font-size: 0.875rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--fashion-ink);
-  margin-bottom: 1.2rem;
+  margin-bottom: 0.85rem;
 }
 
 .footer-container li {
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.4rem;
 }
 
 .footer-container li a {
   color: var(--fashion-muted);
   font-size: 0.84rem;
-  transition: color 0.2s ease;
 }
 
 .footer-container li a:hover {
@@ -586,96 +1215,169 @@ body#checkout section.checkout-step .step-title {
 #footer .block-contact {
   color: var(--fashion-muted);
   font-size: 0.84rem;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
-/* --- 11. Dedykowane reguly Responsywnosci pod szerokosc 360 px --- */
-@media (max-width: 576px) {
-  /* Ochrona przed poziomym paskiem przewijania na waskich ekranach */
-  html, body {
-    max-width: 100vw;
-    overflow-x: hidden;
+.msq-footer-cms-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 1.5rem;
+  padding: 1rem 0 0.5rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--fashion-border);
+}
+
+.msq-footer-cms-bar a {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fashion-muted);
+}
+
+.msq-footer-cms-bar a:hover {
+  color: var(--fashion-ink);
+}
+
+.msq-copyright {
+  color: var(--fashion-muted);
+  font-size: 0.8125rem;
+  margin-bottom: 1.25rem;
+}
+
+/* --- 11. Dedykowane reguly responsywnosci pod szerokosc 360 px --- */
+@media (max-width: 991px) {
+  .msq-newsletter-grid {
+    grid-template-columns: 1fr;
   }
 
+  .msq-why-boxes__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
   .container {
+    width: 100% !important;
+    max-width: 100% !important;
     padding-left: 10px;
     padding-right: 10px;
+    box-sizing: border-box;
   }
 
-  #header::before {
-    font-size: 0.6875rem;
-    padding: 0.4rem 0.5rem;
+  .msq-topbar__inner {
+    font-size: 0.65rem;
     letter-spacing: 0.04em;
-    line-height: 1.35;
   }
 
-  #header .header-top {
-    padding: 0.6rem 0;
+  #header .header-nav.msq-header-panel {
+    padding: 0.2rem 0;
+  }
+
+  .msq-mobile-bar {
+    display: flex !important;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin: 0 !important;
+    padding: 0;
+    float: none !important;
+  }
+
+  #header #_mobile_logo {
+    flex: 1 1 auto;
+    position: static !important;
+    transform: none !important;
+    float: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  #header #_mobile_logo .msq-logo-svg {
+    width: 98px;
+    height: 30px;
+  }
+
+  .msq-mobile-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+  }
+
+  #header #_mobile_user_info,
+  #header #_mobile_cart {
+    float: none !important;
+    min-width: 38px;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .msq-menu-btn {
+    flex: 0 0 auto;
+    float: none !important;
+    margin: 0 !important;
+    background: transparent;
+    border: none;
+    padding: 0;
+    min-width: 40px;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fashion-ink);
+    cursor: pointer;
+  }
+
+  #header .header-top.msq-nav-search-bar {
+    padding: 0.4rem 0;
   }
 
   #header .header-top #search_widget {
     min-width: 100%;
-    margin: 0.5rem 0 0;
-  }
-
-  #carousel .carousel-inner img {
-    max-height: 240px;
-  }
-
-  #carousel .caption {
-    padding: 0.85rem 1rem;
-    position: static;
-    max-width: 100%;
-  }
-
-  #carousel .caption h3 {
-    font-size: 1.15rem;
-    margin-bottom: 0.25rem;
-  }
-
-  #carousel .caption p {
-    font-size: 0.8125rem;
-  }
-
-  .products-section-title {
-    font-size: 1.15rem;
-    margin-bottom: 1.5rem;
-  }
-
-  /* Siatka produktĂłw na telefonie (2 kolumny na 360px z rownymi odstepami) */
-  .products > .js-product,
-  .featured-products .products > .product-miniature {
-    flex: 0 0 50%;
-    max-width: 50%;
-    padding-left: 5px;
-    padding-right: 5px;
-  }
-
-  .product-miniature {
-    margin-bottom: 1.2rem;
-  }
-
-  .product-miniature .product-description {
-    padding: 0.6rem 0.4rem 0.4rem;
-  }
-
-  .product-miniature .product-title a {
-    font-size: 0.8125rem;
-  }
-
-  .product-miniature .product-price-and-shipping {
-    font-size: 0.875rem;
-  }
-
-  /* Przyciski w koszyku i procesie zamowienia */
-  .btn-primary,
-  .btn-secondary {
     width: 100%;
-    font-size: 0.8125rem;
-    padding: 0.75rem 1rem;
+    margin: 0;
+    padding: 0;
   }
 
-  /* Zapobieganie automatycznemu zoomowi formularzy na iOS/Android */
+  #carousel.msq-hero-carousel .carousel-inner {
+    width: 100%;
+    height: auto !important;
+  }
+
+  #carousel.msq-hero-carousel .carousel-inner img {
+    height: auto;
+    aspect-ratio: 3 / 4;
+  }
+
+  #carousel.msq-hero-carousel .msq-hero-caption {
+    left: 2.25rem;
+    right: 2.25rem;
+    bottom: 1.75rem;
+  }
+
+  #carousel.msq-hero-carousel .msq-hero-caption h2.display-1 {
+    font-size: 1.35rem;
+  }
+
+  .banner.msq-promo-banner {
+    aspect-ratio: 3 / 4;
+  }
+
+  .msq-newsletter-controls {
+    flex-direction: column;
+  }
+
+  .msq-why-boxes__grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
   input[type="text"],
   input[type="email"],
   input[type="password"],
@@ -684,30 +1386,36 @@ body#checkout section.checkout-step .step-title {
     font-size: 16px !important;
   }
 
-  #footer {
-    padding-top: 2rem;
-    margin-top: 2rem;
+  #header .row,
+  #wrapper .row,
+  #footer .row {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  #content-wrapper {
+    padding-left: 0;
+    padding-right: 0;
   }
 }
 
-/* Optymalizacja dla dokladnie 360 px (np. Samsung Galaxy S8/S9, standardowy widok mobilny) */
 @media (max-width: 380px) {
-  #header::before {
-    font-size: 0.625rem;
+  .msq-split-pair,
+  .msq-quad-row,
+  #js-product-list .products {
+    gap: 4px;
   }
 
-  .products > .js-product,
-  .featured-products .products > .product-miniature {
-    padding-left: 3px;
-    padding-right: 3px;
+  .product-miniature .product-title a {
+    font-size: 0.78rem;
   }
 
   .product-miniature .product-price-and-shipping {
-    font-size: 0.8125rem;
+    font-size: 0.84rem;
   }
 
-  .product-flags .product-flag {
-    font-size: 0.6875rem;
-    padding: 0.2rem 0.4rem;
+  ul.product-flags li.product-flag {
+    font-size: 0.65rem;
+    padding: 0.16rem 0.5rem;
   }
 }
