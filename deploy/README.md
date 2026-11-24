@@ -14,6 +14,7 @@ deploy/
 │   ├── nginx.conf                  # Konfiguracja Reverse Proxy: HTTP (:80) -> 301 HTTPS (:443) (W3 [K])
 │   └── generate-certs.sh           # Skrypt generujący certyfikat self-signed SSL (openssl)
 ├── init.sh                         # Główny skrypt inicjalizacji danych sklepu i zdjęć (<= 15 min) (W3 [K])
+├── activate-theme.sh               # Skrypt aktywacji motywu potomnego classic-fashion i banera (D1)
 ├── import_api.py                   # Idempotentny skrypt importu produktów i kategorii przez Webservice API (D2)
 ├── backup.sh                       # Skrypt tworzący kopię zapasową bazy, zdjęć i konfiguracji (D4)
 ├── restore.sh                      # Skrypt odtwarzający sklep z kopii zapasowej w <= 10 min (D4)
@@ -84,3 +85,14 @@ deploy/
   ```bash
   ./deploy/restore.sh
   ```
+
+### 5. Aktywacja motywu potomnego i banera modowego (`D1`)
+Motyw potomny `classic-fashion` jest automatycznie wdrażany podczas uruchomienia `./deploy/init.sh`. Można go również wdrożyć lub zaktualizować ręcznie w dowolnym momencie komendą:
+```bash
+./deploy/activate-theme.sh
+```
+Skrypt wykonuje:
+1. Kopiowanie plików motywu potomnego z `shop/themes/classic-fashion/` do kontenera `prestashop_app`.
+2. Aktywację motywu potomnego w PrestaShop (baza `ps_shop.theme_name = 'classic-fashion'` oraz CLI).
+3. Podmianę grafiki slajdu oraz tekstów w module `ps_imageslider` na baner modowy Mosquito.
+4. Czyszczenie pamięci podręcznej (cache) PrestaShop.

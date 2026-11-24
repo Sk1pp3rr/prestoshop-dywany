@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export MSYS_NO_PATHCONV=1
+export MSYS2_ARG_CONV_EXCL="*"
+
 # Import bazowej konfiguracji PrestaShop z deploy/config-export/shop_base_config.sql
 # i wyczyszczenie cache PrestaShop.
 
@@ -20,10 +23,7 @@ if [[ ! -f "${IN_FILE}" ]]; then
   exit 1
 fi
 
-set -a
-# shellcheck disable=SC1090
-source "${ENV_FILE}"
-set +a
+eval "$(tr -d '\r' < "${ENV_FILE}" | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' | sed 's/^/export /')"
 
 DB_NAME="${DB_NAME:-prestashop}"
 
@@ -38,12 +38,13 @@ if ! docker ps --format '{{.Names}}' | grep -qx "${DB_CONTAINER}"; then
 fi
 
 echo "Importowanie ${IN_FILE} do bazy '${DB_NAME}'..."
-docker exec -i -e MYSQL_PWD="${DB_ROOT_PASSWD}" "${DB_CONTAINER}" \
-  mariadb -u root --default-character-set=utf8mb4 "${DB_NAME}" < "${IN_FILE}"
+docker cp "${IN_FILE}" "${DB_CONTAINER}:/tmp/import_config.sql"
+docker exec -e MYSQL_PWD="${DB_ROOT_PASSWD}" "${DB_CONTAINER}" sh -c \
+  "mariadb -u root --default-character-set=utf8mb4 \"${DB_NAME}\" < /tmp/import_config.sql && rm -f /tmp/import_config.sql"
 
 if docker ps --format '{{.Names}}' | grep -qx "${APP_CONTAINER}"; then
   echo "Czyszczenie cache PrestaShop w kontenerze ${APP_CONTAINER}..."
-  docker exec "${APP_CONTAINER}" rm -rf /var/www/html/var/cache/*
+  docker exec "${APP_CONTAINER}" sh -c "rm -rf /var/www/html/var/cache/*"
 fi
 
 echo "Import zakończony pomyślnie."

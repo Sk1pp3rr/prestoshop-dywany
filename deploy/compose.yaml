@@ -56,6 +56,7 @@ services:
       PS_MAIL_SMTP_PORT: 1025
     volumes:
       - ps_data:/var/www/html
+      - ../shop/themes/classic-fashion:/var/www/html/themes/classic-fashion:rw
 
   mailpit:
     image: axllent/mailpit

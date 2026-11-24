@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export MSYS_NO_PATHCONV=1
+export MSYS2_ARG_CONV_EXCL="*"
+
 # Pełna inicjalizacja sklepu PrestaShop 8.2 jedną komendą:
 # 1. Tworzy .env z .env.example (jeśli brak) i generuje certyfikaty SSL (jeśli brak).
 # 2. Uruchamia kontenery z deploy/compose.yaml i czeka na gotowość bazy oraz PrestaShop.
@@ -12,10 +15,11 @@ ENV_FILE="${REPO_ROOT}/.env"
 ENV_EXAMPLE="${REPO_ROOT}/.env.example"
 COMPOSE_FILE="${REPO_ROOT}/deploy/compose.yaml"
 CERT_SCRIPT="${REPO_ROOT}/deploy/nginx/generate-certs.sh"
-SSL_CERT="${REPO_ROOT}/deploy/nginx/ssl/localhost.crt"
+SSL_CERT="${REPO_ROOT}/deploy/nginx/ssl/server.crt"
 CONFIG_SQL="${REPO_ROOT}/deploy/config-export/shop_base_config.sql"
 IMPORT_SCRIPT="${REPO_ROOT}/deploy/import_api.py"
 PRODUCTS_JSON="${REPO_ROOT}/scraper-results/products.json"
+THEME_ACTIVATE_SCRIPT="${REPO_ROOT}/deploy/activate-theme.sh"
 
 WITH_IMPORT=false
 if [[ "${1:-}" == "--with-import" ]]; then
@@ -32,14 +36,11 @@ if [[ ! -f "${ENV_FILE}" ]]; then
   fi
 fi
 
-set -a
-# shellcheck disable=SC1090
-source "${ENV_FILE}"
-set +a
+eval "$(tr -d '\r' < "${ENV_FILE}" | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' | sed 's/^/export /')"
 
 DB_NAME="${DB_NAME:-prestashop}"
 HTTPS_PORT="${HTTPS_PORT:-8443}"
-PS_FOLDER_ADMIN="${PS_FOLDER_ADMIN:-admin_dywany}"
+PS_FOLDER_ADMIN="${PS_FOLDER_ADMIN:-admin_fashion}"
 MAILPIT_UI_PORT="${MAILPIT_UI_PORT:-8025}"
 
 if [[ ! -f "${SSL_CERT}" ]]; then
@@ -85,9 +86,10 @@ fi
 
 if [[ -f "${CONFIG_SQL}" ]]; then
   echo "Wgrywanie bazowej konfiguracji z ${CONFIG_SQL}..."
-  docker exec -i -e MYSQL_PWD="${DB_ROOT_PASSWD}" prestashop_db \
-    mariadb -u root --default-character-set=utf8mb4 "${DB_NAME}" < "${CONFIG_SQL}"
-  docker exec prestashop_app rm -rf /var/www/html/var/cache/*
+  docker cp "${CONFIG_SQL}" prestashop_db:/tmp/shop_base_config.sql
+  docker exec -e MYSQL_PWD="${DB_ROOT_PASSWD}" prestashop_db sh -c \
+    "mariadb -u root --default-character-set=utf8mb4 \"${DB_NAME}\" < /tmp/shop_base_config.sql && rm -f /tmp/shop_base_config.sql"
+  docker exec prestashop_app sh -c "rm -rf /var/www/html/var/cache/*"
 else
   echo "Pominięto import SQL (brak pliku ${CONFIG_SQL})."
 fi
@@ -116,6 +118,10 @@ WHERE name IN (
 SQL
 docker exec prestashop_app rm -rf /var/www/html/var/cache/*
 
+if [[ -f "${THEME_ACTIVATE_SCRIPT}" ]]; then
+  echo "Wdrażanie motywu potomnego (classic-fashion) i banera..."
+  bash "${THEME_ACTIVATE_SCRIPT}"
+fi
 # Automatyczna aktywacja Webservice API i lokalnego klucza z .env
 if [[ -z "${PRESTASHOP_API_KEY:-}" || "${PRESTASHOP_API_KEY}" == ChangeMe* ]]; then
   PRESTASHOP_API_KEY="$(tr -dc 'A-Z0-9' </dev/urandom | head -c 32 || true)"

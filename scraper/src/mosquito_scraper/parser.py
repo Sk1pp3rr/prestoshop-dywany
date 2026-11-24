@@ -55,6 +55,41 @@ def parse_category_page(html_content: str) -> list[str]:
     return product_urls
 
 
+SUBCATEGORY_MAIN_CATEGORY_MAP: dict[str, str] = {
+    "sukienki na wesele": "Sukienki",
+    "kurtki & płaszcze": "Okrycia wierzchnie",
+    "marynarki": "Okrycia wierzchnie",
+    "bezrękawniki": "Okrycia wierzchnie",
+    "kamizelki": "Okrycia wierzchnie",
+    "swetry damskie": "Swetry, bluzy i bluzki",
+    "bluzy damskie": "Swetry, bluzy i bluzki",
+    "koszule": "Swetry, bluzy i bluzki",
+    "bluzki & topy": "Swetry, bluzy i bluzki",
+    "koszulki": "Swetry, bluzy i bluzki",
+    "topy damskie": "Swetry, bluzy i bluzki",
+    "spodnie": "Spodnie, spódnice i komplety",
+    "spodnie dresowe": "Spodnie, spódnice i komplety",
+    "spódnice": "Spodnie, spódnice i komplety",
+    "szorty damskie": "Spodnie, spódnice i komplety",
+    "komplety damskie": "Spodnie, spódnice i komplety",
+    "kombinezony": "Spodnie, spódnice i komplety",
+    "mosquito move": "Sport i akcesoria",
+    "legginsy damskie": "Sport i akcesoria",
+    "czapki i szaliki damskie": "Sport i akcesoria",
+    "basic": "Sport i akcesoria",
+}
+
+
+def resolve_main_category(main_cat: str, sub_cat: str) -> str:
+    """Przypisuje podkategorię do jednej z 5 głównych kategorii asortymentowych."""
+    sub_norm = sub_cat.strip().lower()
+    if sub_norm in SUBCATEGORY_MAIN_CATEGORY_MAP:
+        return SUBCATEGORY_MAIN_CATEGORY_MAP[sub_norm]
+    if "sukienk" in sub_norm:
+        return "Sukienki"
+    return main_cat
+
+
 def parse_category_menu(html_content: str) -> list[tuple[str, str, str]]:
     """Wyodrębnia pary (kategoria_główna, podkategoria, url) z mega-menu sklepu."""
     soup = BeautifulSoup(html_content, "html.parser")
@@ -95,7 +130,8 @@ def parse_category_menu(html_content: str) -> list[tuple[str, str, str]]:
             if href in seen_urls:
                 continue
             seen_urls.add(href)
-            results.append((main_cat, sub_name, href))
+            resolved_main = resolve_main_category(main_cat, sub_name)
+            results.append((resolved_main, sub_name, href))
 
     return results
 
@@ -163,14 +199,56 @@ def parse_product_page(
         if price_gross <= 0:
             raise ValueError(f"Nieprawidłowa lub brakująca cena dla URL: {url}")
 
-        # 4. Opis produktu
-        description: str = ""
-        if product_json and product_json.get("description"):
+        # 4. Opis produktu oraz cechy z bloków .cvProductAdditionalDesc (desc_1, desc_2, desc_3)
+        extra_attributes: dict[str, str] = {}
+        desc_parts: list[str] = []
+
+        desc_1_div = soup.select_one(".cvProductAdditionalDesc.desc_1")
+        if desc_1_div:
+            desc_1_lines: list[str] = []
+            for p_tag in desc_1_div.find_all("p"):
+                full_p = re.sub(r"\s+", " ", p_tag.get_text(" ", strip=True)).strip()
+                if not full_p or "znajdziesz tutaj" in full_p.lower():
+                    continue
+                strong_tag = p_tag.find(["strong", "b"])
+                if strong_tag:
+                    label_raw = (
+                        re.sub(r"\s+", " ", strong_tag.get_text(" ", strip=True))
+                        .strip()
+                        .rstrip(":")
+                    )
+                    if label_raw and full_p.lower().startswith(label_raw.lower()):
+                        val_raw = full_p[len(label_raw) :].lstrip(" :\xa0").strip()
+                        if val_raw:
+                            desc_1_lines.append(f"{label_raw}: {val_raw}")
+                            if label_raw.lower().startswith("modelka"):
+                                model_name = label_raw[len("modelka") :].strip()
+                                extra_attributes["Modelka"] = (
+                                    f"{model_name} ({val_raw})" if model_name else val_raw
+                                )
+                            else:
+                                extra_attributes[label_raw] = val_raw
+                            continue
+                desc_1_lines.append(full_p)
+            if desc_1_lines:
+                desc_parts.append("\n".join(desc_1_lines))
+
+        for sel in (".cvProductAdditionalDesc.desc_2", ".cvProductAdditionalDesc.desc_3"):
+            block = soup.select_one(sel)
+            if block:
+                block_text = re.sub(r"\s+", " ", block.get_text(" ", strip=True)).strip()
+                if block_text and block_text not in desc_parts:
+                    desc_parts.append(block_text)
+
+        description: str = "\n\n".join(desc_parts).strip()
+
+        if not description and product_json and product_json.get("description"):
             description = str(product_json["description"]).strip()
 
         if not description:
             desc_div = soup.select_one(
-                ".product-description, [id^='product-description-short'], #description"
+                ".product-description, [id^='product-description-short'], "
+                "#product-description, #description"
             )
             if desc_div:
                 description = desc_div.get_text(strip=True)
@@ -196,6 +274,7 @@ def parse_product_page(
 
         if len(category_path) < 2:
             category_path = [fallback_category, fallback_subcategory]
+        category_path[0] = resolve_main_category(category_path[0], category_path[1])
 
         # 6. Zdjęcia produktu (wysoka rozdzielczość)
         image_urls: list[str] = []
@@ -251,6 +330,7 @@ def parse_product_page(
 
         # 8. Cechy i atrybuty (Attributes)
         attributes: dict[str, str] = {"Producent": "Mosquito"}
+        attributes.update(extra_attributes)
         # Sprawdzamy czy zdefiniowano kolor
         for item in soup.select(".product-variants .product-variants-item"):
             label = item.select_one(".control-label")
@@ -259,6 +339,12 @@ def parse_product_page(
                 colors = [inp.get("title") for inp in item.select("input") if inp.get("title")]
                 if colors:
                     attributes["Kolor"] = ", ".join(colors)
+        if "Kolor" not in attributes:
+            color_switch = soup.select_one(".current-feature__name strong")
+            if color_switch:
+                color_txt = color_switch.get_text(strip=True)
+                if color_txt:
+                    attributes["Kolor"] = color_txt
 
         # 9. Identyfikator zewnętrzny (SKU / id z URL)
         external_id: str = ""
