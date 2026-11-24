@@ -10,6 +10,7 @@ Zawiera kod źródłowy w języku Python 3.11+ odpowiedzialny za pobranie katego
 ```text
 scraper/
 ├── pyproject.toml                  # Konfiguracja pakietu, zależności, Ruff oraz Pytest
+├── stock_config.yaml               # Konfiguracja rozkładu stanów magazynowych (odwracanie dystrybuanty)
 ├── src/
 │   └── mosquito_scraper/
 │       ├── __init__.py

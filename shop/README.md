@@ -1,7 +1,7 @@
 # Katalog `shop/` – Kod Źródłowy Sklepu PrestaShop 8.2.x (`W3`, `D1`, `D3`)
 
 ## Przeznaczenie katalogu
-Ten katalog zawiera obraz kontenerowy sklepu, dostosowania wyglądu (motyw potomny) oraz moduły własne rozszerzające funkcjonalność **PrestaShop 8.2.x** pod sklep z dywanami i pokryciami podłogowymi (`dywanyluszczow.eu`).
+Ten katalog zawiera dostosowania wyglądu (motyw potomny classic-fashion) oraz moduły własne rozszerzające funkcjonalność PrestaShop 8.2.x pod sklep z odzieżą damską (mosquito-sklep.pl).
 
 ---
 
@@ -30,8 +30,8 @@ shop/
    * Bazuje na oficjalnym obrazie `prestashop/prestashop:8.2-apache` (PHP 8.1).
    * Budowany obowiązkowo dla architektury **`linux/amd64`** (wymóg pod klaster Docker Swarm w Etapie 2).
 2. **Wygląd sklepu – Child Theme (`D1` – 5 pkt):**
-   * Wszystkie modyfikacje wizualne muszą być realizowane w motywie potomnym (`themes/classic-dywany/`), **nie wolno edytować bezpośrednio plików bazowego motywu `classic`**.
-   * Na stronie głównej musi znajdować się co najmniej jeden działający baner w tematyce dywanów/wykładzin.
+   * Wszystkie modyfikacje wizualne muszą być realizowane w motywie potomnym (`themes/classic-fashion/`), **nie wolno edytować bezpośrednio plików bazowego motywu `classic`**.
+   * Na stronie głównej musi znajdować się co najmniej jeden działający baner tematyczny sklepu.
    * Poprawne wyświetlanie na ekranie telefonu o szerokości **360 px** oraz wynik **Lighthouse Accessibility $\ge 85$** i **Performance $\ge 60$**.
 3. **Dyrektywa Omnibus i Promocje (`D3` – 3 pkt):**
    * W katalogu `modules/` umieszczamy moduł odpowiedzialny za prezentację informacji o najniższej cenie z 30 dni przed wprowadzeniem obniżki na karcie produktu objętego promocją.
