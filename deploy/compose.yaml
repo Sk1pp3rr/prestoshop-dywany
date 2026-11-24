@@ -57,6 +57,7 @@ services:
     volumes:
       - ps_data:/var/www/html
       - ../shop/themes/classic-fashion:/var/www/html/themes/classic-fashion:rw
+      - ../shop/modules/ps_omnibusprice:/var/www/html/modules/ps_omnibusprice:rw
 
   mailpit:
     image: axllent/mailpit
