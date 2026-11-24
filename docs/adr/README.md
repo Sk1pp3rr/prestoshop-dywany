@@ -9,7 +9,7 @@ W tym katalogu przechowujemy zapisy kluczowych decyzji architektonicznych podję
 ## Lista decyzji architektonicznych
 1. [ADR-001: Struktura repozytorium, ochrona gałęzi `main` oraz potok CI (GitHub Actions)](001-repo-structure-and-ci.md)
 2. [ADR-002: Zmiana sklepu źródłowego na mosquito-sklep.pl](002-zmiana-sklepu-zrodlowego-mosquito.md)
-3. `003-containers-ssl-and-data-init.md` *(planowany: architektura Docker Compose `linux/amd64`, terminacja SSL i strategia inicjalizacji danych oraz importu przez Webservice API)*
+3. [ADR-003: Kontenery Docker Compose, HTTPS i inicjalizacja danych](003-containers-ssl-and-data-init.md)
 
 ---
 
