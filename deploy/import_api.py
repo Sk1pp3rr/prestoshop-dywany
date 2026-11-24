@@ -4,7 +4,7 @@
 Realizuje wymaganie D2 (oraz powiązane metryki W2, W3, W4, D3):
 - Tworzy i aktualizuje (POST / PUT) drzewo kategorii, cechy, warianty rozmiarowe, stany i zdjęcia.
 - Gwarantuje idempotencję: ponowne uruchomienie aktualizuje rekordy bez tworzenia duplikatów.
-- Wyznacza deterministyczne stany magazynowe 0–10 szt. (suma produktu <= 10, 5–20% ze stanem 0).
+- Odczytuje stany magazynowe bezpośrednio z pliku products.json (bez nadpisywania logiką lokalną).
 - Pobiera paczkę zdjęć z GitHub Releases (images.zip) z bezpiecznym fallbackiem do image_urls.
 - Aktualizuje górne menu (#top-menu / MOD_BLOCKTOPMENU_ITEMS) na główne kategorie sklepu.
 - Raportuje liczbę utworzonych, zaktualizowanych i odrzuconych rekordów.
@@ -208,50 +208,29 @@ def prepare_records(products: list[dict[str, Any]]) -> tuple[list[PreparedRecord
     return prepared, rejected_invalid
 
 
-def is_product_out_of_stock(ref: str) -> bool:
-    """Deterministycznie wyznacza ok. 12% produktów ze stanem 0 (wymóg W3: 5%–20%)."""
-    seed = int(hashlib.md5(ref.encode("utf-8")).hexdigest()[:8], 16) % 100
-    return seed < 12
+def extract_variant_stocks(item: dict[str, Any]) -> tuple[list[int], int]:
+    """Odczytuje gotowe stany magazynowe (stock_quantity) wprost z rekordu products.json.
 
-
-def compute_variant_stocks(ref: str, variant_labels: list[str]) -> tuple[list[int], int]:
-    """Wyznacza deterministyczne stany wariantów oraz indeks domyślnego wariantu.
-
-    Gwarantuje:
-    - 0 szt. na wszystkich wariantach dla produktów wyprzedanych (~12% katalogu),
-    - dla produktów dostępnych: łączna suma stanów wszystkich wariantów wynosi 3..10 szt.
-      (dzięki czemu wiersz główny id_product_attribute=0 w ps_stock_available ma zawsze <= 10 szt.),
-    - domyślny wariant produktu dostępnego ma co najmniej 3 szt. (pod testy E2E Playwright).
+    Zwraca listę stanów dla kolejnych wariantów (lub 1-elementową listę dla produktu prostego)
+    oraz indeks domyślnego wariantu (pierwszy wariant ze stanem > 0, albo 0).
     """
-    count = len(variant_labels)
-    if count == 0:
-        qty = (
-            0
-            if is_product_out_of_stock(ref)
-            else (3 + int(hashlib.md5(ref.encode()).hexdigest()[:4], 16) % 8)
-        )
+    variants = item.get("variants") or []
+    if not variants:
+        try:
+            qty = max(0, int(item.get("stock_quantity", 0)))
+        except (TypeError, ValueError):
+            qty = 0
         return [qty], 0
 
-    if is_product_out_of_stock(ref):
-        return [0] * count, 0
+    stocks: list[int] = []
+    for var in variants:
+        try:
+            qty = max(0, int(var.get("stock_quantity", 0)))
+        except (TypeError, ValueError):
+            qty = 0
+        stocks.append(qty)
 
-    digest = int(hashlib.md5(ref.encode("utf-8")).hexdigest()[:12], 16)
-    if count == 1:
-        total_qty = 3 + (digest % 8)  # 3..10
-        return [total_qty], 0
-
-    total_qty = 4 + (digest % 7)  # 4..10 dla wielowariantowych
-    default_idx = (digest // 7) % count
-    stocks = [0] * count
-    base_default = min(total_qty, 3)
-    stocks[default_idx] = base_default
-    remaining = total_qty - base_default
-
-    step_seed = (digest // 97) or 1
-    for unit in range(remaining):
-        target_idx = (default_idx + 1 + (unit + step_seed) % count) % count
-        stocks[target_idx] += 1
-
+    default_idx = next((idx for idx, q in enumerate(stocks) if q > 0), 0)
     return stocks, default_idx
 
 
@@ -1174,9 +1153,7 @@ def run_dry_run(
     all_product_totals: list[int] = []
 
     for rec in records:
-        variants = rec.item.get("variants") or []
-        labels = [str(v.get("size") or "UNIWERSALNY") for v in variants]
-        stocks, _ = compute_variant_stocks(rec.ref, labels)
+        stocks, _ = extract_variant_stocks(rec.item)
         prod_total = sum(stocks)
         if prod_total == 0:
             out_of_stock_products += 1
@@ -1400,7 +1377,7 @@ def main() -> None:
     for rec in records:
         if len(featured_refs) >= args.featured_count:
             break
-        if not is_product_out_of_stock(rec.ref):
+        if sum(extract_variant_stocks(rec.item)[0]) > 0:
             featured_refs.add(rec.ref)
 
     logger.info(
@@ -1513,7 +1490,7 @@ def main() -> None:
         size_labels = [
             sanitize_catalog_text(str(v.get("size") or "UNIWERSALNY"), 64) for v in variants
         ]
-        stocks, default_idx = compute_variant_stocks(rec.ref, size_labels)
+        stocks, default_idx = extract_variant_stocks(item)
         attr_to_qty: dict[int, int] = {}
         created_new_comb = False
 
