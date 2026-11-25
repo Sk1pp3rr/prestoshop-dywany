@@ -1,6 +1,6 @@
 # Architecture Decision Records (`docs/adr/`) – Wymaganie D6
 
-W tym katalogu przechowujemy zapisy kluczowych decyzji architektonicznych podjętych przez zespół podczas realizacji projektu sklepu PrestaShop 8.2.x (`dywanyluszczow.eu`).
+W tym katalogu przechowujemy zapisy kluczowych decyzji architektonicznych podjętych przez zespół podczas realizacji projektu sklepu PrestaShop 8.2.x (`mosquito-sklep.pl`).
 
 ## Wymagania (`D6`)
 * Minimum **3 zapisy ADR** w repozytorium.

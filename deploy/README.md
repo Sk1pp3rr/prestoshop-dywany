@@ -15,8 +15,11 @@ deploy/
 │   └── generate-certs.sh           # Skrypt generujący certyfikat self-signed SSL (openssl)
 ├── init.sh                         # Główny skrypt inicjalizacji danych sklepu i zdjęć (<= 15 min) (W3 [K])
 ├── activate-theme.sh               # Skrypt aktywacji motywu potomnego classic-fashion i banera (D1)
+├── seed-images.php                 # Seeder zdjęć 3:4 do motywu/banerów (D1)
 ├── import_api.py                   # Idempotentny skrypt importu produktów i kategorii przez Webservice API (D2)
-├── backup.sh                       # Skrypt tworzący kopię zapasową bazy, zdjęć i konfiguracji (D4)
+├── export-config.sh                # Eksport zanonimizowanej konfiguracji do shop_base_config.sql (D4)
+├── import-config.sh                # Import konfiguracji z shop_base_config.sql i czyszczenie cache (D4)
+├── backup.sh                       # Skrypt tworzący kopię zapasową bazy i plików wolumenu ps_data (D4)
 ├── restore.sh                      # Skrypt odtwarzający sklep z kopii zapasowej w <= 10 min (D4)
 └── config-export/                  # Zanonimizowany eksport konfiguracji sklepu (bez sekretów i danych RODO) (D4)
     └── shop_base_config.sql        # Konfiguracja przewoźników, podatków, stron CMS, płatności i statusów

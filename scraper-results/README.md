@@ -9,9 +9,8 @@ Przechowuje ustrukturyzowane, zwalidowane dane wyjściowe ze scrapera (w kodowan
 
 ```text
 scraper-results/
-├── categories.json                 # Pełne drzewo kategorii i podkategorii (>= 4 główne, po >= 2 podkategorie)
 ├── products.json                   # Lista >= 1000 zwalidowanych produktów (UTF-8) z URL-ami źródłowymi zdjęć
-└── sample-images/                  # Maksymalnie 20 przykładowych zdjęć po przeskalowaniu (800-1600 px, <= 300 KB)
+└── images/                  # Maksymalnie 20 przykładowych zdjęć po przeskalowaniu (800-1600 px, <= 300 KB)
 ```
 
 ---
@@ -19,7 +18,7 @@ scraper-results/
 ## Kluczowe zasady i ograniczenia (`W1`, `W2`)
 
 1. **Kompletność danych (`W2` [K]):**
-   * Pliki `categories.json` oraz `products.json` muszą być zapisane w kodowaniu **UTF-8** z poprawnymi polskimi znakami.
+   * Pliki `products.json` muszą być zapisane w kodowaniu **UTF-8** z poprawnymi polskimi znakami.
    * **0 produktów** bez nazwy, ceny, opisu lub adresów zdjęć.
    * Każdy produkt posiada adresy źródłowe zdjęć (`image_urls`) oraz ścieżkę przypisania do pliku z archiwum zdjęć.
 2. **Zakaz przechowywania pełnego zbioru zdjęć w Git (`W1`, `W2`):**

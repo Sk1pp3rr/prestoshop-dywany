@@ -10,12 +10,13 @@ Zawiera automatyczne testy przeglądarkowe E2E napisane w **Playwright**, które
 ```text
 tests/
 ├── package.json                    # Zależności (@playwright/test) oraz skrypt uruchomieniowy
+├── package-lock.json               # Zablokowane wersje zależności Node.js (wymagane przez npm ci)
 ├── playwright.config.ts            # Konfiguracja: BASE_URL z env, headless: true, raporty HTML/JUnit, screenshoty
-├── e2e/
-│   └── full-shopping-flow.spec.ts  # Pełny 10-krokowy scenariusz testowy (W4)
-└── helpers/
-    └── shop-actions.ts             # Funkcje pomocnicze (wyszukiwanie, obsługa koszyka, rejestracja)
-```
+└── e2e/
+    ├── smoke.spec.ts               # Test dostępności sklepu (HTTPS)
+    ├── registration.spec.ts        # Test rejestracji nowego konta klienta
+    └── cart.spec.ts                # Scenariusz koszyka, wyszukiwania i procesu zakupowego (W4)
+  ```
 
 ---
 
@@ -24,7 +25,7 @@ tests/
 Skrypt testowy musi wykonać w całości w czasie **$\le 5\text{ minut}$** (ze stabilnością **3/3 uruchomień**) następujące kroki:
 
 1. **Dodanie do koszyka 10 produktów** w różnych ilościach, pochodzących z co najmniej **dwóch różnych kategorii** (z uwagą, by łączna waga koszyka nie przekroczyła limitu 50 kg).
-2. **Wyszukanie produktu po nazwie** (np. `dywan` lub `chodnik`) za pomocą wyszukiwarki sklepowej i dodanie do koszyka **losowego dostępnego produktu** spośród wyników.
+2. **Wyszukanie produktu po nazwie** (np. `sukienka` lub `sweter`) za pomocą wyszukiwarki sklepowej i dodanie do koszyka **losowego dostępnego produktu** spośród wyników.
 3. **Usunięcie z koszyka 3 produktów** (wraz z asercją sprawdzającą przeliczenie zawartości koszyka).
 4. **Rejestracja nowego konta klienta** (z unikalnym adresem e-mail).
 5. **Rozpoczęcie składania zamówienia** na zawartość koszyka (uzupełnienie/potwierdzenie adresu dostawy w Polsce).
