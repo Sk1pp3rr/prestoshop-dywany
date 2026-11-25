@@ -47,6 +47,18 @@ System odwzorowuje sklep internetowy z odzieżą damską na podstawie danych ze 
    bash deploy/init.sh --with-import
    ```
 
+### Błąd `Permission denied` przy zapisie logów lub cache
+
+Jeśli podczas uruchamiania skryptów instalacyjnych lub seedowania pojawi się błąd zapisu (np. `The stream or file "/var/www/html/var/logs/..." could not be opened in append mode: Failed to open stream: Permission denied`), należy utworzyć brakujące katalogi i nadać im odpowiednie uprawnienia użytkownika `www-data` wewnątrz kontenera:
+
+```bash
+docker compose -f deploy/compose.yaml --env-file .env exec -u root prestashop \
+  sh -c 'mkdir -p /var/www/html/var/logs /var/www/html/var/cache && chown -R www-data:www-data /var/www/html/var/logs /var/www/html/var/cache'
+```
+
+
+
+
 * **Adres sklepu (HTTPS):** `https://localhost:8443` (przekierowanie HTTP $\rightarrow$ 301 HTTPS z portu `8080`)
 * **Panel Mailpit (przechwytywanie e-maili):** `http://localhost:8025`
 
