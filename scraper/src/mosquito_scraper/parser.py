@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_STOCK_CONFIG_PATH = Path(__file__).resolve().parents[2] / "stock_config.yaml"
 OUT_OF_STOCK_PROB = 0.12
 VARIANT_OUT_OF_STOCK_PROB = 0.10
+MAX_PRODUCT_STOCK = 10
 # Domyślne wagi dyskretne dla stanów 1–10 szt. (używane jako fallback przy braku pliku YAML).
 IN_STOCK_WEIGHTS: dict[int, float] = {
     1: 0.18,
@@ -79,6 +80,35 @@ def load_stock_config(
 
     cdf = tuple(_build_cdf([parsed_weights[v] for v in values]))
     return out_prob, variant_out_prob, values, cdf
+
+
+@lru_cache(maxsize=16)
+def load_max_product_stock(config_path: Path = DEFAULT_STOCK_CONFIG_PATH) -> int:
+    """Wczytuje maksymalny łączny stan magazynowy produktu z pliku YAML."""
+    if not config_path.exists():
+        return MAX_PRODUCT_STOCK
+    raw = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    max_stock = int(raw.get("max_product_stock", MAX_PRODUCT_STOCK))
+    if max_stock <= 0:
+        raise ValueError("max_product_stock w pliku YAML musi być dodatnie.")
+    return max_stock
+
+
+def cap_variant_quantities(quantities: list[int], max_total: int = MAX_PRODUCT_STOCK) -> list[int]:
+    """Ogranicza sumę stanów wariantów produktu do max_total, zachowując zera i dostępność."""
+    capped = list(quantities)
+    while sum(capped) > max_total:
+        candidates = [i for i, q in enumerate(capped) if q > 1]
+        if not candidates:
+            candidates = [i for i, q in enumerate(capped) if q > 0]
+        if not candidates:
+            break
+        max_val = max(capped[i] for i in candidates)
+        for idx in candidates:
+            if capped[idx] == max_val:
+                capped[idx] -= 1
+                break
+    return capped
 
 
 def _sample_from_cdf(cdf: tuple[float, ...] | list[float], u: float) -> int:
@@ -419,12 +449,16 @@ def parse_product_page(
 
         generator = rng or _DEFAULT_RNG
         out_prob, variant_out_prob, stock_values, stock_cdf = load_stock_config(stock_config_path)
+        max_total_stock = load_max_product_stock(stock_config_path)
         product_out_of_stock = generator.random() < out_prob
-        for size in sizes:
+        raw_qtys: list[int] = []
+        for _size in sizes:
             if product_out_of_stock or generator.random() < variant_out_prob:
-                qty = 0
+                raw_qtys.append(0)
             else:
-                qty = stock_values[_sample_from_cdf(stock_cdf, generator.random())]
+                raw_qtys.append(stock_values[_sample_from_cdf(stock_cdf, generator.random())])
+        capped_qtys = cap_variant_quantities(raw_qtys, max_total_stock)
+        for size, qty in zip(sizes, capped_qtys, strict=True):
             variants.append(
                 ProductVariant(
                     size=size,
