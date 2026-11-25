@@ -178,7 +178,13 @@ if [[ -d "${OMNIBUS_SRC}" ]]; then
   IS_OMNIBUS_INSTALLED="$(docker exec -e MYSQL_PWD="${DB_ROOT_PASSWD}" "${DB_CONTAINER}" \
     mariadb -N -B -u root "${DB_NAME}" -e "SELECT COUNT(*) FROM ps_module WHERE name = 'ps_omnibusprice';" 2>/dev/null | tr -d '[:space:]' || echo "0")"
   if [[ "${IS_OMNIBUS_INSTALLED:-0}" -eq 0 ]]; then
-    docker exec -u www-data "${APP_CONTAINER}" php -d memory_limit=512M bin/console prestashop:module install ps_omnibusprice
+    # Symfony CLI musi miec prawo zapisu do logow i cache.
+    # Wczesniejsze polecenia uruchamiane jako root moga tworzyc pliki root:root.
+    docker exec -u root "${APP_CONTAINER}" sh -c '
+      mkdir -p /var/www/html/var/logs /var/www/html/var/cache
+      chown -R www-data:www-data /var/www/html/var/logs /var/www/html/var/cache
+    '
+    docker exec -u www-data "${APP_CONTAINER}" php -d memory_limit=512M bin/console --env=prod --no-debug prestashop:module install ps_omnibusprice
   fi
   docker exec -u www-data "${APP_CONTAINER}" php -d memory_limit=512M -r '
     require_once "/var/www/html/config/config.inc.php";
