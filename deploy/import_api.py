@@ -719,9 +719,12 @@ def sync_categories(
     api: PrestaShopAPI,
     records: list[PreparedRecord],
     lang_ids: list[int],
+    prune_unused: bool = False,
 ) -> tuple[dict[tuple[int, str], int], list[int]]:
     """Tworzy lub aktualizuje drzewo kategorii i zwraca cache oraz ID 5 kategorii głównych."""
-    existing_data = api.get_json("categories", {"display": "[id,id_parent,name,active]"})
+    existing_data = api.get_json(
+        "categories", {"display": "[id,id_parent,level_depth,name,active]"}
+    )
     cache: dict[tuple[int, str], int] = {}
     active_state: dict[int, str] = {}
     for cat in existing_data.get("categories", []):
@@ -753,6 +756,8 @@ def sync_categories(
 
     created_cats = 0
     updated_cats = 0
+    deleted_cats = 0
+    used_cat_ids: set[int] = {1, 2}
     for path in unique_paths:
         parent_id = 2  # Strona główna (Home)
         for cat_name in path:
@@ -771,6 +776,7 @@ def sync_categories(
                     api.put_xml(f"categories/{cid}", ET.tostring(root, encoding="utf-8"))
                     active_state[cid] = "1"
                     updated_cats += 1
+                used_cat_ids.add(cid)
                 parent_id = cid
             else:
                 ET.SubElement(cat_el, "id_parent").text = str(parent_id)
@@ -782,19 +788,41 @@ def sync_categories(
                 cid = int(resp.findtext("./category/id") or 0)
                 cache[lookup] = cid
                 active_state[cid] = "1"
+                used_cat_ids.add(cid)
                 parent_id = cid
                 created_cats += 1
+
+    if prune_unused:
+        unused_cats = [
+            cat
+            for cat in existing_data.get("categories", [])
+            if int(cat["id"]) > 2 and int(cat["id"]) not in used_cat_ids
+        ]
+        unused_cats.sort(
+            key=lambda c: (
+                -int(c.get("level_depth", 0)),
+                int(c.get("id_parent", 0)) == 2,
+                -int(c["id"]),
+            )
+        )
+        for cat in unused_cats:
+            cid = int(cat["id"])
+            if api.delete(f"categories/{cid}"):
+                deleted_cats += 1
+                active_state.pop(cid, None)
 
     main_cat_ids = [
         cache[(2, name.lower())] for name in main_cat_names_ordered if (2, name.lower()) in cache
     ]
-    for (pid_key, _cname), cid_val in sorted(cache.items(), key=lambda kv: kv[1]):
-        if pid_key == 2 and active_state.get(cid_val) == "1" and cid_val not in main_cat_ids:
-            main_cat_ids.append(cid_val)
+    if not prune_unused:
+        for (pid_key, _cname), cid_val in sorted(cache.items(), key=lambda kv: kv[1]):
+            if pid_key == 2 and active_state.get(cid_val) == "1" and cid_val not in main_cat_ids:
+                main_cat_ids.append(cid_val)
     logger.info(
-        "Kategorie zsynchronizowane: utworzono=%d, zaktualizowano=%d, główne=%s.",
+        "Kategorie zsynchronizowane: utworzono=%d, zaktualizowano=%d, usunięto=%d, główne=%s.",
         created_cats,
         updated_cats,
+        deleted_cats,
         main_cat_ids,
     )
     return cache, main_cat_ids
@@ -1601,7 +1629,9 @@ def main() -> None:
     if promo_discounts:
         set_configuration_value(api, "PS_SPECIFIC_PRICE_FEATURE_ACTIVE", "1")
 
-    cat_cache, main_cat_ids = sync_categories(api, records, lang_ids)
+    cat_cache, main_cat_ids = sync_categories(
+        api, records, lang_ids, prune_unused=(args.limit <= 0)
+    )
     if main_cat_ids:
         menu_val = ",".join(f"CAT{cid}" for cid in main_cat_ids)
         set_configuration_value(api, "MOD_BLOCKTOPMENU_ITEMS", menu_val)

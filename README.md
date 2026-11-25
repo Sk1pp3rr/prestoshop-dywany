@@ -26,8 +26,6 @@ System odwzorowuje sklep internetowy z odzieżą damską na podstawie danych ze 
 | `deploy/` | `compose.yaml`, skrypty instalacji, inicjalizacji danych, importu API, backupu i odtwarzania | [`deploy/README.md`](deploy/README.md) |
 | `docs/` | Dziennik AI ([`docs/AI_LOG.md`](docs/AI_LOG.md)), decyzje architektoniczne ([`docs/adr/`](docs/adr/)) | [`docs/README.md`](docs/README.md) |
 
-Szczegółowy plan realizacji projektu oraz specyfikacja wymagań znajdują się w pliku [`PLAN_REALIZACJI.md`](PLAN_REALIZACJI.md).
-
 ---
 
 ## 3. Uruchomienie sklepu krok po kroku (z czystego klona)

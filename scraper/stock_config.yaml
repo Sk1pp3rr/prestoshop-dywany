@@ -5,6 +5,9 @@ out_of_stock_prob: 0.12
 # Prawdopodobieństwo, że pojedynczy wariant (rozmiar) dostępnego produktu ma stan 0
 variant_out_of_stock_prob: 0.10
 
+# Maksymalny łączny stan magazynowy produktu (suma wszystkich wariantów; wymóg W3: <= 10 szt.)
+max_product_stock: 10
+
 # Wagi prawdopodobieństwa dla poszczególnych stanów dostępnych (1 - 10 szt.).
 # Wartości są automatycznie normalizowane do sumy 1.0 przy budowie dystrybuanty (CDF).
 in_stock_weights:
