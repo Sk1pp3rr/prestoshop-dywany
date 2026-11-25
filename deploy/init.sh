@@ -47,8 +47,12 @@ PS_FOLDER_ADMIN="${PS_FOLDER_ADMIN:-admin_fashion}"
 MAILPIT_UI_PORT="${MAILPIT_UI_PORT:-8025}"
 
 CERT_GENERATED=false
+SSL_DIR="$(dirname "${SSL_CERT}")"
 if [[ ! -f "${SSL_CERT}" ]]; then
   echo "Generowanie samopodpisanych certyfikatów SSL..."
+  if [[ -d "${SSL_DIR}" && ! -w "${SSL_DIR}" ]]; then
+    docker run --rm -v "${SSL_DIR}:/ssl" nginx:alpine chown -R "$(id -u):$(id -g)" /ssl >/dev/null 2>&1 || true
+  fi
   bash "${CERT_SCRIPT}"
   CERT_GENERATED=true
 fi
