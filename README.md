@@ -32,7 +32,7 @@ System odwzorowuje sklep internetowy z odzieżą damską na podstawie danych ze 
 
 1. **Klonowanie repozytorium i konfiguracja zmiennych środowiskowych:**
    ```bash
-   git clone <adres-repozytorium>
+   git clone https://github.com/Sk1pp3rr/prestoshop-dywany.git
    cd prestoshop-dywany
    cp .env.example .env
    ```
