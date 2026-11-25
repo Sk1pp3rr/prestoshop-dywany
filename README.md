@@ -32,7 +32,7 @@ System odwzorowuje sklep internetowy z odzieżą damską na podstawie danych ze 
 
 1. **Klonowanie repozytorium i konfiguracja zmiennych środowiskowych:**
    ```bash
-   git clone <adres-repozytorium>
+   git clone https://github.com/Sk1pp3rr/prestoshop-dywany.git
    cd prestoshop-dywany
    cp .env.example .env
    ```
@@ -46,6 +46,8 @@ System odwzorowuje sklep internetowy z odzieżą damską na podstawie danych ze 
    ```bash
    bash deploy/init.sh --with-import
    ```
+
+
 
 * **Adres sklepu (HTTPS):** `https://localhost:8443` (przekierowanie HTTP $\rightarrow$ 301 HTTPS z portu `8080`)
 * **Panel Mailpit (przechwytywanie e-maili):** `http://localhost:8025`
